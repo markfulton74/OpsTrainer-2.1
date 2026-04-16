@@ -1,0 +1,3101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OpsTrainer — Humanitarian Training Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ============================================
+       DESIGN SYSTEM
+    ============================================ */
+    :root {
+      --primary: #1a56db;
+      --primary-dark: #1340af;
+      --primary-light: #e8f0fe;
+      --accent: #f59e0b;
+      --accent-light: #fef3c7;
+      --success: #10b981;
+      --success-light: #d1fae5;
+      --danger: #ef4444;
+      --danger-light: #fee2e2;
+      --warning: #f59e0b;
+      --warning-light: #fef3c7;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9ca3af;
+      --gray-500: #6b7280;
+      --gray-600: #4b5563;
+      --gray-700: #374151;
+      --gray-800: #1f2937;
+      --gray-900: #111827;
+      --white: #ffffff;
+      --sidebar-width: 240px;
+      --header-height: 60px;
+      --radius: 10px;
+      --radius-sm: 6px;
+      --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+      --shadow-md: 0 4px 6px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.06);
+      --shadow-lg: 0 10px 15px rgba(0,0,0,0.1), 0 4px 6px rgba(0,0,0,0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-800);
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 100vh;
+    }
+
+    /* ============================================
+       AUTH SCREENS
+    ============================================ */
+    .auth-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a6e 50%, #1a56db 100%);
+      padding: 24px;
+    }
+
+    .auth-card {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .auth-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .auth-logo .logo-mark {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .auth-logo .logo-icon {
+      width: 44px;
+      height: 44px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+    }
+
+    .auth-logo .logo-text {
+      font-size: 22px;
+      font-weight: 800;
+      color: var(--gray-900);
+      letter-spacing: -0.5px;
+    }
+
+    .auth-logo .logo-text span {
+      color: var(--primary);
+    }
+
+    .auth-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 4px;
+    }
+
+    .auth-subtitle {
+      font-size: 14px;
+      color: var(--gray-500);
+      margin-bottom: 28px;
+    }
+
+    .auth-tabs {
+      display: flex;
+      border-bottom: 2px solid var(--gray-200);
+      margin-bottom: 24px;
+    }
+
+    .auth-tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--gray-500);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.2s;
+    }
+
+    .auth-tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+    }
+
+    /* ============================================
+       FORM ELEMENTS
+    ============================================ */
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-700);
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select, .form-textarea {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-size: 14px;
+      font-family: inherit;
+      color: var(--gray-800);
+      background: var(--white);
+      transition: border-color 0.2s, box-shadow 0.2s;
+      outline: none;
+    }
+
+    .form-input:focus, .form-select:focus, .form-textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(26, 86, 219, 0.12);
+    }
+
+    .form-textarea {
+      resize: vertical;
+      min-height: 80px;
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* ============================================
+       BUTTONS
+    ============================================ */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: var(--primary);
+      color: var(--white);
+    }
+    .btn-primary:hover:not(:disabled) { background: var(--primary-dark); }
+
+    .btn-secondary {
+      background: var(--gray-100);
+      color: var(--gray-700);
+    }
+    .btn-secondary:hover:not(:disabled) { background: var(--gray-200); }
+
+    .btn-success {
+      background: var(--success);
+      color: var(--white);
+    }
+    .btn-success:hover:not(:disabled) { background: #059669; }
+
+    .btn-danger {
+      background: var(--danger);
+      color: var(--white);
+    }
+    .btn-danger:hover:not(:disabled) { background: #dc2626; }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--gray-600);
+    }
+    .btn-ghost:hover:not(:disabled) { background: var(--gray-100); }
+
+    .btn-outline {
+      background: transparent;
+      color: var(--primary);
+      border: 1.5px solid var(--primary);
+    }
+    .btn-outline:hover:not(:disabled) { background: var(--primary-light); }
+
+    .btn-lg {
+      padding: 12px 24px;
+      font-size: 15px;
+      width: 100%;
+    }
+
+    .btn-sm {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+
+    .btn-icon {
+      padding: 8px;
+      border-radius: var(--radius-sm);
+    }
+
+    /* ============================================
+       APP SHELL
+    ============================================ */
+    .app-shell {
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--gray-900);
+      color: var(--white);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      z-index: 100;
+      overflow-y: auto;
+    }
+
+    .sidebar-header {
+      padding: 20px 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .sidebar-logo-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo-text {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.3px;
+    }
+
+    .sidebar-org {
+      font-size: 11px;
+      color: var(--gray-400);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .sidebar-nav {
+      flex: 1;
+      padding: 12px 8px;
+    }
+
+    .nav-section {
+      margin-bottom: 20px;
+    }
+
+    .nav-section-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      padding: 0 8px;
+      margin-bottom: 4px;
+    }
+
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      color: var(--gray-400);
+      font-size: 13px;
+      font-weight: 500;
+      transition: all 0.15s;
+      margin-bottom: 2px;
+    }
+
+    .nav-item:hover {
+      background: rgba(255,255,255,0.07);
+      color: var(--white);
+    }
+
+    .nav-item.active {
+      background: var(--primary);
+      color: var(--white);
+    }
+
+    .nav-item .nav-icon { font-size: 16px; width: 20px; text-align: center; }
+    .nav-item .nav-badge {
+      margin-left: auto;
+      background: var(--accent);
+      color: var(--gray-900);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 6px;
+      border-radius: 99px;
+    }
+
+    .sidebar-footer {
+      padding: 12px 8px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .sidebar-user {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .sidebar-user:hover { background: rgba(255,255,255,0.07); }
+
+    .user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .user-info { flex: 1; min-width: 0; }
+    .user-name { font-size: 13px; font-weight: 600; color: var(--white); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-role { font-size: 11px; color: var(--gray-400); }
+
+    /* Main content */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Top bar */
+    .topbar {
+      height: var(--header-height);
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      display: flex;
+      align-items: center;
+      padding: 0 24px;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .topbar-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gray-900);
+      flex: 1;
+    }
+
+    .topbar-subtitle {
+      font-size: 12px;
+      color: var(--gray-500);
+      font-weight: 400;
+      margin-left: 6px;
+    }
+
+    /* Page content */
+    .page {
+      padding: 28px 28px;
+      flex: 1;
+    }
+
+    /* ============================================
+       CARDS
+    ============================================ */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .card-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+
+    .card-body { padding: 20px; }
+
+    /* ============================================
+       STATS GRID
+    ============================================ */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+
+    .stat-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      color: var(--gray-900);
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-meta {
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .stat-icon {
+      font-size: 24px;
+      margin-bottom: 12px;
+    }
+
+    /* ============================================
+       COURSE CARDS
+    ============================================ */
+    .courses-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 20px;
+    }
+
+    .course-card {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .course-card:hover {
+      border-color: var(--primary);
+      box-shadow: var(--shadow-md);
+      transform: translateY(-1px);
+    }
+
+    .course-card-thumb {
+      height: 8px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+
+    .course-card-thumb.platform { background: linear-gradient(90deg, #7c3aed, var(--primary)); }
+    .course-card-thumb.forge { background: linear-gradient(90deg, var(--success), #0ea5e9); }
+
+    .course-card-body { padding: 16px; }
+
+    .course-card-badges {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-size: 11px;
+      font-weight: 600;
+    }
+
+    .badge-primary { background: var(--primary-light); color: var(--primary-dark); }
+    .badge-success { background: var(--success-light); color: #065f46; }
+    .badge-warning { background: var(--accent-light); color: #92400e; }
+    .badge-danger { background: var(--danger-light); color: #991b1b; }
+    .badge-gray { background: var(--gray-100); color: var(--gray-600); }
+    .badge-purple { background: #ede9fe; color: #5b21b6; }
+
+    .course-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+      line-height: 1.3;
+    }
+
+    .course-card-desc {
+      font-size: 13px;
+      color: var(--gray-500);
+      margin-bottom: 14px;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .course-card-meta {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 12px;
+      color: var(--gray-500);
+    }
+
+    .course-card-meta span { display: flex; align-items: center; gap: 4px; }
+
+    .progress-bar {
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 99px;
+      margin-top: 12px;
+      overflow: hidden;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--success);
+      border-radius: 99px;
+      transition: width 0.3s;
+    }
+
+    /* ============================================
+       COURSE VIEWER
+    ============================================ */
+    .course-viewer {
+      display: flex;
+      gap: 0;
+      height: calc(100vh - var(--header-height));
+    }
+
+    .course-sidebar {
+      width: 280px;
+      background: var(--white);
+      border-right: 1px solid var(--gray-200);
+      overflow-y: auto;
+      flex-shrink: 0;
+    }
+
+    .course-sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+
+    .course-sidebar-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-900);
+      line-height: 1.3;
+    }
+
+    .course-progress-summary {
+      margin-top: 10px;
+    }
+
+    .module-item {
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .module-header {
+      padding: 12px 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-700);
+      transition: background 0.15s;
+    }
+
+    .module-header:hover { background: var(--gray-50); }
+
+    .module-header .module-num {
+      width: 20px;
+      height: 20px;
+      background: var(--gray-200);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .lesson-list { background: var(--gray-50); }
+
+    .lesson-item {
+      padding: 9px 16px 9px 44px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--gray-600);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.15s;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .lesson-item:hover { background: var(--gray-100); }
+    .lesson-item.active { background: var(--primary-light); color: var(--primary); font-weight: 600; }
+    .lesson-item.completed .lesson-check { color: var(--success); }
+    .lesson-check { font-size: 14px; flex-shrink: 0; }
+
+    .course-main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 32px;
+    }
+
+    .lesson-content {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+
+    .lesson-content h2 { font-size: 22px; font-weight: 800; color: var(--gray-900); margin-bottom: 16px; }
+    .lesson-content h3 { font-size: 17px; font-weight: 700; color: var(--gray-800); margin: 20px 0 10px; }
+    .lesson-content p { color: var(--gray-700); margin-bottom: 14px; line-height: 1.7; }
+    .lesson-content ul, .lesson-content ol { padding-left: 20px; margin-bottom: 14px; }
+    .lesson-content li { color: var(--gray-700); margin-bottom: 6px; line-height: 1.6; }
+    .lesson-content strong { color: var(--gray-900); }
+    .lesson-content em { color: var(--gray-600); }
+
+    /* ============================================
+       QUIZ / QUESTIONS
+    ============================================ */
+    .question-block {
+      background: var(--gray-50);
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-top: 24px;
+    }
+
+    .question-text {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 16px;
+    }
+
+    .options-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 14px;
+      color: var(--gray-700);
+      background: var(--white);
+    }
+
+    .option-item:hover { border-color: var(--primary); background: var(--primary-light); }
+    .option-item.selected { border-color: var(--primary); background: var(--primary-light); color: var(--primary-dark); font-weight: 500; }
+    .option-item.correct { border-color: var(--success); background: var(--success-light); color: #065f46; font-weight: 500; }
+    .option-item.incorrect { border-color: var(--danger); background: var(--danger-light); color: #991b1b; }
+
+    .open-answer-box {
+      width: 100%;
+      padding: 12px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      color: var(--gray-800);
+      resize: vertical;
+      min-height: 120px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .open-answer-box:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(26,86,219,0.1); }
+
+    /* ============================================
+       AI INSTRUCTOR
+    ============================================ */
+    .ai-chat-container {
+      display: flex;
+      flex-direction: column;
+      height: calc(100vh - var(--header-height) - 56px);
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px 0;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .chat-message {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    .chat-message.user { flex-direction: row-reverse; }
+
+    .chat-avatar {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+
+    .chat-avatar.ai { background: var(--primary); font-size: 18px; }
+    .chat-avatar.user-av { background: var(--gray-200); font-size: 14px; font-weight: 700; color: var(--gray-600); }
+
+    .chat-bubble {
+      max-width: 75%;
+      padding: 12px 16px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .chat-message.ai .chat-bubble {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      color: var(--gray-800);
+      border-top-left-radius: 4px;
+    }
+
+    .chat-message.user .chat-bubble {
+      background: var(--primary);
+      color: var(--white);
+      border-top-right-radius: 4px;
+    }
+
+    .chat-input-row {
+      display: flex;
+      gap: 8px;
+      padding: 16px 0;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 11px 16px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 24px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .chat-input:focus { border-color: var(--primary); }
+
+    .lang-select {
+      padding: 8px 10px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      color: var(--gray-700);
+      background: var(--white);
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* ============================================
+       CBIR REPORT
+    ============================================ */
+    .cbir-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .cbir-pillar {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .cbir-score {
+      font-size: 36px;
+      font-weight: 800;
+      margin: 8px 0 4px;
+    }
+
+    .cbir-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .cbir-bar {
+      height: 6px;
+      background: var(--gray-200);
+      border-radius: 99px;
+      margin-top: 10px;
+      overflow: hidden;
+    }
+
+    .cbir-bar-fill {
+      height: 100%;
+      border-radius: 99px;
+      transition: width 0.5s;
+    }
+
+    /* ============================================
+       COURSE FORGE WIZARD
+    ============================================ */
+    .forge-wizard {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    .forge-steps {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      margin-bottom: 32px;
+    }
+
+    .forge-step {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-400);
+      flex: 1;
+    }
+
+    .forge-step-num {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--gray-200);
+      color: var(--gray-500);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .forge-step.active .forge-step-num { background: var(--primary); color: var(--white); }
+    .forge-step.done .forge-step-num { background: var(--success); color: var(--white); }
+    .forge-step.active { color: var(--gray-700); }
+    .forge-step.done { color: var(--gray-500); }
+
+    .forge-step-line {
+      flex: 1;
+      height: 2px;
+      background: var(--gray-200);
+      margin: 0 8px;
+    }
+    .forge-step-line.done { background: var(--success); }
+
+    .forge-panel {
+      background: var(--white);
+      border: 1px solid var(--gray-200);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .forge-panel-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin-bottom: 6px;
+    }
+
+    .forge-panel-desc {
+      font-size: 14px;
+      color: var(--gray-500);
+      margin-bottom: 24px;
+    }
+
+    .outcomes-list { display: flex; flex-direction: column; gap: 8px; }
+
+    .outcome-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .outcome-row .form-input { flex: 1; }
+
+    /* Generated structure preview */
+    .structure-preview { display: flex; flex-direction: column; gap: 12px; }
+
+    .module-preview {
+      background: var(--gray-50);
+      border: 1.5px solid var(--gray-200);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+
+    .module-preview-header {
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--gray-800);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .module-preview-lessons {
+      padding: 0 16px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .lesson-preview {
+      font-size: 13px;
+      color: var(--gray-600);
+      padding: 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Generating overlay */
+    .generating-overlay {
+      text-align: center;
+      padding: 48px 24px;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 20px;
+    }
+
+    .spinner-sm {
+      width: 16px;
+      height: 16px;
+      border-width: 2px;
+      display: inline-block;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ============================================
+       TABLES
+    ============================================ */
+    .table-wrap { overflow-x: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      border-bottom: 1px solid var(--gray-200);
+      background: var(--gray-50);
+    }
+
+    td {
+      padding: 12px 16px;
+      font-size: 13px;
+      color: var(--gray-700);
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: var(--gray-50); }
+
+    /* ============================================
+       MODALS
+    ============================================ */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      backdrop-filter: blur(2px);
+    }
+
+    .modal {
+      background: var(--white);
+      border-radius: 14px;
+      width: 100%;
+      max-width: 520px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+      padding: 20px 24px 16px;
+      border-bottom: 1px solid var(--gray-100);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title { font-size: 17px; font-weight: 700; color: var(--gray-900); }
+    .modal-body { padding: 20px 24px; }
+    .modal-footer { padding: 16px 24px; border-top: 1px solid var(--gray-100); display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ============================================
+       ALERTS / TOAST
+    ============================================ */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--gray-900);
+      color: var(--white);
+      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: slideUp 0.3s ease;
+      max-width: 340px;
+    }
+
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+    .toast.warning { background: var(--warning); color: var(--gray-900); }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ============================================
+       VERIFY PAGE (public)
+    ============================================ */
+    .verify-page {
+      min-height: 100vh;
+      background: var(--gray-50);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .verify-card {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 40px;
+      width: 100%;
+      max-width: 480px;
+      box-shadow: var(--shadow-lg);
+      text-align: center;
+    }
+
+    .verify-icon { font-size: 56px; margin-bottom: 16px; }
+    .verify-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .verify-detail { font-size: 14px; color: var(--gray-500); margin-bottom: 4px; }
+    .verify-detail strong { color: var(--gray-800); }
+
+    /* ============================================
+       EMPTY STATES
+    ============================================ */
+    .empty-state {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--gray-500);
+    }
+
+    .empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state-title { font-size: 16px; font-weight: 700; color: var(--gray-700); margin-bottom: 8px; }
+    .empty-state-desc { font-size: 14px; margin-bottom: 20px; }
+
+    /* ============================================
+       UTILITIES
+    ============================================ */
+    .hidden { display: none !important; }
+    .flex { display: flex; }
+    .flex-col { flex-direction: column; }
+    .items-center { align-items: center; }
+    .justify-between { justify-content: space-between; }
+    .gap-2 { gap: 8px; }
+    .gap-3 { gap: 12px; }
+    .gap-4 { gap: 16px; }
+    .mt-2 { margin-top: 8px; }
+    .mt-3 { margin-top: 12px; }
+    .mt-4 { margin-top: 16px; }
+    .mb-2 { margin-bottom: 8px; }
+    .mb-3 { margin-bottom: 12px; }
+    .mb-4 { margin-bottom: 16px; }
+    .text-sm { font-size: 12px; }
+    .text-muted { color: var(--gray-500); }
+    .text-danger { color: var(--danger); }
+    .text-success { color: var(--success); }
+    .font-bold { font-weight: 700; }
+    .w-full { width: 100%; }
+    .text-center { text-align: center; }
+    .divider { border: none; border-top: 1px solid var(--gray-200); margin: 20px 0; }
+
+    /* ============================================
+       RESPONSIVE
+    ============================================ */
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.3s; }
+      .sidebar.open { transform: translateX(0); }
+      .main-content { margin-left: 0; }
+      .page { padding: 16px; }
+      .stats-grid { grid-template-columns: 1fr 1fr; }
+      .courses-grid { grid-template-columns: 1fr; }
+      .form-row { grid-template-columns: 1fr; }
+      .course-viewer { flex-direction: column; }
+      .course-sidebar { width: 100%; height: 200px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ============================================
+     TOAST CONTAINER
+============================================ -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============================================
+     APP ROOT
+============================================ -->
+<div id="app"></div>
+
+<script>
+// ============================================
+// OpsTrainer 2.1 — Frontend Application
+// Single-file SPA — no build step required
+// ============================================
+
+// ---- CONFIG ----
+const API_BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:3000/api'
+  : '/api';
+
+// ---- STATE ----
+const state = {
+  user: null,
+  org: null,
+  currentView: 'login',
+  courses: [],
+  currentCourse: null,
+  currentLesson: null,
+  currentModuleIndex: null,
+  chatHistory: [],
+  chatSessionId: null,
+  forgeStep: 1,
+  forgeOutcomes: ['', '', ''],
+  forgeStructure: null,
+  forgeJobId: null,
+  forgeModulesContent: [],
+  dashboard: null,
+  certificates: [],
+  cbirReport: null,
+};
+
+// ---- TOKEN STORAGE ----
+const Auth = {
+  getAccessToken: () => localStorage.getItem('ot_access'),
+  getRefreshToken: () => localStorage.getItem('ot_refresh'),
+  setTokens: (access, refresh) => {
+    localStorage.setItem('ot_access', access);
+    if (refresh) localStorage.setItem('ot_refresh', refresh);
+  },
+  clearTokens: () => {
+    localStorage.removeItem('ot_access');
+    localStorage.removeItem('ot_refresh');
+  },
+  isLoggedIn: () => !!localStorage.getItem('ot_access'),
+};
+
+// ---- API HELPER ----
+async function api(method, path, body = null, retry = true) {
+  const token = Auth.getAccessToken();
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+  };
+  if (body) opts.body = JSON.stringify(body);
+
+  let res = await fetch(`${API_BASE}${path}`, opts);
+
+  // Token expired — try refresh
+  if (res.status === 401 && retry) {
+    const refreshed = await tryRefresh();
+    if (refreshed) return api(method, path, body, false);
+    logout();
+    return null;
+  }
+
+  const data = await res.json();
+  return data;
+}
+
+async function tryRefresh() {
+  const rt = Auth.getRefreshToken();
+  if (!rt) return false;
+  try {
+    const res = await fetch(`${API_BASE}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refreshToken: rt }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      Auth.setTokens(data.accessToken, data.refreshToken);
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+// ---- TOAST ----
+function toast(message, type = 'default', duration = 3500) {
+  const container = document.getElementById('toastContainer');
+  const icons = { success: '✅', error: '❌', warning: '⚠️', default: 'ℹ️' };
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.innerHTML = `<span>${icons[type] || ''}</span> ${message}`;
+  container.appendChild(el);
+  setTimeout(() => el.remove(), duration);
+}
+
+// ---- ROUTER ----
+function navigate(view, params = {}) {
+  state.currentView = view;
+  Object.assign(state, params);
+  render();
+  window.scrollTo(0, 0);
+}
+
+// ---- MAIN RENDER ----
+function render() {
+  const app = document.getElementById('app');
+
+  // Public verify page
+  if (window.location.pathname.startsWith('/verify/')) {
+    const num = window.location.pathname.split('/verify/')[1];
+    app.innerHTML = renderVerifyPage(num);
+    loadVerifyCert(num);
+    return;
+  }
+
+  if (!state.user) {
+    app.innerHTML = renderAuthPage();
+    return;
+  }
+
+  app.innerHTML = `
+    <div class="app-shell">
+      ${renderSidebar()}
+      <div class="main-content">
+        ${renderTopbar()}
+        ${renderCurrentView()}
+      </div>
+    </div>
+  `;
+
+  bindEvents();
+}
+
+// ---- AUTH PAGE ----
+function renderAuthPage() {
+  return `
+    <div class="auth-page">
+      <div class="auth-card">
+        <div class="auth-logo">
+          <div class="logo-mark">
+            <div class="logo-icon">🌍</div>
+            <div class="logo-text">Ops<span>Trainer</span></div>
+          </div>
+        </div>
+        <div class="auth-tabs">
+          <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</div>
+          <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">Register Organisation</div>
+        </div>
+
+        <!-- Login Form -->
+        <div id="loginForm">
+          <p class="auth-subtitle">AI-powered humanitarian training platform.</p>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-input" id="loginEmail" placeholder="you@organisation.org" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-input" id="loginPassword" placeholder="••••••••" 
+              onkeydown="if(event.key==='Enter') doLogin()" />
+          </div>
+          <button class="btn btn-primary btn-lg" onclick="doLogin()" id="loginBtn">Sign In</button>
+          <p class="text-sm text-muted text-center mt-3">
+            Demo: admin@demo.opstrainer.co.za / Admin123!
+          </p>
+        </div>
+
+        <!-- Register Form -->
+        <div id="registerForm" class="hidden">
+          <p class="auth-subtitle">Start your 14-day free trial. No credit card required.</p>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Your Name</label>
+              <input type="text" class="form-input" id="regName" placeholder="Jane Smith" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Organisation Name</label>
+              <input type="text" class="form-input" id="regOrg" placeholder="MSF, UNHCR, Red Cross..." />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Work Email</label>
+            <input type="email" class="form-input" id="regEmail" placeholder="you@organisation.org" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Password (min. 8 characters)</label>
+            <input type="password" class="form-input" id="regPassword" placeholder="••••••••" />
+          </div>
+          <button class="btn btn-primary btn-lg" onclick="doRegister()" id="registerBtn">Create Organisation</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function switchAuthTab(tab) {
+  document.getElementById('tabLogin').classList.toggle('active', tab === 'login');
+  document.getElementById('tabRegister').classList.toggle('active', tab === 'register');
+  document.getElementById('loginForm').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('registerForm').classList.toggle('hidden', tab !== 'register');
+}
+
+async function doLogin() {
+  const btn = document.getElementById('loginBtn');
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  if (!email || !password) return toast('Email and password required', 'error');
+
+  btn.disabled = true;
+  btn.textContent = 'Signing in...';
+  const data = await api('POST', '/auth/login', { email, password });
+  btn.disabled = false;
+  btn.textContent = 'Sign In';
+
+  if (!data || !data.success) return toast(data?.error || 'Login failed', 'error');
+  Auth.setTokens(data.accessToken, data.refreshToken);
+  state.user = data.user;
+  state.org = data.org;
+  navigate('dashboard');
+}
+
+async function doRegister() {
+  const btn = document.getElementById('registerBtn');
+  const full_name = document.getElementById('regName').value.trim();
+  const org_name = document.getElementById('regOrg').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+
+  if (!full_name || !org_name || !email || !password) return toast('All fields required', 'error');
+  if (password.length < 8) return toast('Password must be at least 8 characters', 'error');
+
+  btn.disabled = true;
+  btn.textContent = 'Creating account...';
+  const data = await api('POST', '/auth/register-org', { full_name, org_name, email, password });
+  btn.disabled = false;
+  btn.textContent = 'Create Organisation';
+
+  if (!data || !data.success) return toast(data?.error || 'Registration failed', 'error');
+  Auth.setTokens(data.accessToken, data.refreshToken);
+  state.user = data.user;
+  state.org = data.org;
+  toast('Welcome to OpsTrainer! 🎉', 'success');
+  navigate('dashboard');
+}
+
+// ---- SIDEBAR ----
+function renderSidebar() {
+  const { user, org } = state;
+  const isAdmin = ['org_admin', 'superadmin', 'manager'].includes(user?.role);
+  const initials = (user?.full_name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  const navItem = (view, icon, label, badge = '') => {
+    const active = state.currentView === view ? 'active' : '';
+    return `<div class="nav-item ${active}" onclick="navigate('${view}')">
+      <span class="nav-icon">${icon}</span> ${label}
+      ${badge ? `<span class="nav-badge">${badge}</span>` : ''}
+    </div>`;
+  };
+
+  return `
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-logo">
+          <div class="sidebar-logo-icon">🌍</div>
+          <div>
+            <div class="sidebar-logo-text">OpsTrainer</div>
+            <div class="sidebar-org">${org?.name || ''}</div>
+          </div>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Training</div>
+          ${navItem('dashboard', '📊', 'Dashboard')}
+          ${navItem('courses', '📚', 'My Courses')}
+          ${navItem('ai-instructor', '🤖', 'AI Instructor')}
+          ${navItem('certificates', '🎓', 'Certificates')}
+          ${navItem('cbir', '🧠', 'CBIR Report')}
+        </div>
+
+        ${isAdmin ? `
+        <div class="nav-section">
+          <div class="nav-section-label">Admin</div>
+          ${navItem('admin-dashboard', '🏢', 'Org Dashboard')}
+          ${navItem('admin-courses', '📖', 'Manage Courses')}
+          ${navItem('forge', '🔥', 'Course Forge')}
+          ${navItem('admin-users', '👥', 'Users')}
+        </div>
+        ` : ''}
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-user" onclick="showUserMenu()">
+          <div class="user-avatar">${initials}</div>
+          <div class="user-info">
+            <div class="user-name">${user?.full_name || 'User'}</div>
+            <div class="user-role">${user?.role?.replace('_', ' ') || ''}</div>
+          </div>
+          <span style="color:var(--gray-500);font-size:12px;">⚙️</span>
+        </div>
+      </div>
+    </aside>
+  `;
+}
+
+// ---- TOPBAR ----
+const viewTitles = {
+  dashboard: ['Dashboard', 'Your learning overview'],
+  courses: ['My Courses', 'Browse and continue your training'],
+  'ai-instructor': ['AI Instructor', 'Your personal training assistant'],
+  certificates: ['Certificates', 'Your verified credentials'],
+  cbir: ['CBIR Report', 'Cognitive-Behavioral Insight'],
+  'admin-dashboard': ['Org Dashboard', 'Organisation performance overview'],
+  'admin-courses': ['Manage Courses', 'All organisation courses'],
+  forge: ['Course Forge', 'AI-powered course builder'],
+  'admin-users': ['Users', 'Manage organisation members'],
+  'course-viewer': [state.currentCourse?.title || 'Course', 'In progress'],
+};
+
+function renderTopbar() {
+  const [title, sub] = viewTitles[state.currentView] || ['OpsTrainer', ''];
+  return `
+    <header class="topbar">
+      <div class="topbar-title">
+        ${title}
+        ${sub ? `<span class="topbar-subtitle">/ ${sub}</span>` : ''}
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="logout()">Sign out</button>
+    </header>
+  `;
+}
+
+// ---- VIEWS ROUTER ----
+function renderCurrentView() {
+  const views = {
+    dashboard: renderLearnerDashboard,
+    courses: renderCourses,
+    'ai-instructor': renderAIInstructor,
+    certificates: renderCertificates,
+    cbir: renderCBIRReport,
+    'admin-dashboard': renderAdminDashboard,
+    'admin-courses': renderAdminCourses,
+    forge: renderForge,
+    'admin-users': renderAdminUsers,
+    'course-viewer': renderCourseViewer,
+  };
+  const fn = views[state.currentView];
+  return fn ? `<div class="page" id="pageContent">${fn()}</div>` : '<div class="page">View not found</div>';
+}
+
+// ============================================
+// LEARNER DASHBOARD
+// ============================================
+function renderLearnerDashboard() {
+  return `
+    <div id="learnerDashboard">
+      <div class="stats-grid">
+        <div class="stat-card">
+          <div class="stat-icon">📚</div>
+          <div class="stat-label">Enrolled Courses</div>
+          <div class="stat-value" id="statEnrolled">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">✅</div>
+          <div class="stat-label">Completed</div>
+          <div class="stat-value" id="statCompleted">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🎓</div>
+          <div class="stat-label">Certificates</div>
+          <div class="stat-value" id="statCerts">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">🧠</div>
+          <div class="stat-label">CBIR Score</div>
+          <div class="stat-value" id="statCbir">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Continue Learning</span>
+          <button class="btn btn-primary btn-sm" onclick="navigate('courses')">Browse All →</button>
+        </div>
+        <div id="continueLearning" class="card-body">
+          <div class="empty-state">
+            <div class="empty-state-icon">🚀</div>
+            <div class="empty-state-title">Start your training journey</div>
+            <div class="empty-state-desc">Browse available courses to get started.</div>
+            <button class="btn btn-primary" onclick="navigate('courses')">Browse Courses</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadLearnerDashboard() {
+  const [coursesData, certsData, cbirData] = await Promise.all([
+    api('GET', '/courses'),
+    api('GET', '/certificates/my'),
+    api('GET', '/ai/cbir/report'),
+  ]);
+
+  const courses = coursesData?.courses || [];
+  const certs = certsData?.certificates || [];
+  const cbir = cbirData?.report;
+
+  // Count enrolments from courses that have progress
+  const enrolled = courses.filter(c => c.enrolment_count > 0).length;
+  const completed = certs.length;
+
+  document.getElementById('statEnrolled') && (document.getElementById('statEnrolled').textContent = enrolled);
+  document.getElementById('statCompleted') && (document.getElementById('statCompleted').textContent = completed);
+  document.getElementById('statCerts') && (document.getElementById('statCerts').textContent = certs.length);
+  document.getElementById('statCbir') && (document.getElementById('statCbir').textContent = cbir?.averages?.overall ?? '—');
+
+  // In-progress courses
+  const inProgress = courses.filter(c => c.enrolment_count > 0);
+  const cl = document.getElementById('continueLearning');
+  if (cl && inProgress.length > 0) {
+    cl.innerHTML = `<div class="courses-grid">${inProgress.slice(0, 3).map(c => renderCourseCard(c)).join('')}</div>`;
+  }
+}
+
+// ============================================
+// COURSES
+// ============================================
+function renderCourses() {
+  return `
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <input type="text" class="form-input" placeholder="🔍 Search courses..." id="courseSearch"
+            oninput="filterCourses()" style="width:280px;" />
+        </div>
+        <div class="flex gap-2">
+          <select class="form-select" id="courseFilter" onchange="filterCourses()" style="width:140px;">
+            <option value="">All Courses</option>
+            <option value="platform">Platform Courses</option>
+            <option value="org">Organisation Courses</option>
+          </select>
+        </div>
+      </div>
+      <div id="coursesGrid" class="courses-grid">
+        <div class="empty-state" style="grid-column:1/-1">
+          <div class="spinner"></div>
+          <p class="mt-3 text-muted">Loading courses...</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderCourseCard(course, enrolment = null) {
+  const diffColors = { beginner: 'success', intermediate: 'warning', advanced: 'danger' };
+  const thumb = course.is_platform_course ? 'platform' : course.forge_generated ? 'forge' : '';
+  const pct = enrolment?.progress_pct || 0;
+
+  return `
+    <div class="course-card" onclick="openCourse('${course.id}')">
+      <div class="course-card-thumb ${thumb}"></div>
+      <div class="course-card-body">
+        <div class="course-card-badges">
+          ${course.is_platform_course ? '<span class="badge badge-purple">🌍 Platform</span>' : '<span class="badge badge-primary">🏢 Org</span>'}
+          ${course.forge_generated ? '<span class="badge badge-success">🔥 Forge</span>' : ''}
+          <span class="badge badge-${diffColors[course.difficulty] || 'gray'}">${course.difficulty || 'beginner'}</span>
+        </div>
+        <div class="course-card-title">${course.title}</div>
+        ${course.description ? `<div class="course-card-desc">${course.description}</div>` : ''}
+        <div class="course-card-meta">
+          <span>⏱ ${course.estimated_hours}h</span>
+          ${course.category ? `<span>📂 ${course.category}</span>` : ''}
+        </div>
+        ${pct > 0 ? `
+          <div class="progress-bar mt-2">
+            <div class="progress-bar-fill" style="width:${pct}%"></div>
+          </div>
+          <div class="text-sm text-muted mt-1">${pct}% complete</div>
+        ` : ''}
+      </div>
+    </div>
+  `;
+}
+
+async function loadCourses() {
+  const data = await api('GET', '/courses');
+  state.courses = data?.courses || [];
+  filterCourses();
+}
+
+function filterCourses() {
+  const search = (document.getElementById('courseSearch')?.value || '').toLowerCase();
+  const filter = document.getElementById('courseFilter')?.value || '';
+  const grid = document.getElementById('coursesGrid');
+  if (!grid) return;
+
+  let courses = state.courses;
+  if (search) courses = courses.filter(c => c.title.toLowerCase().includes(search) || (c.description || '').toLowerCase().includes(search));
+  if (filter === 'platform') courses = courses.filter(c => c.is_platform_course);
+  if (filter === 'org') courses = courses.filter(c => !c.is_platform_course);
+
+  if (courses.length === 0) {
+    grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <div class="empty-state-icon">📭</div>
+      <div class="empty-state-title">No courses found</div>
+      <div class="empty-state-desc">Try a different search or browse all courses.</div>
+    </div>`;
+    return;
+  }
+
+  grid.innerHTML = courses.map(c => renderCourseCard(c)).join('');
+}
+
+async function openCourse(courseId) {
+  const data = await api('GET', `/courses/${courseId}`);
+  if (!data?.success) return toast('Could not load course', 'error');
+  state.currentCourse = data.course;
+  state.currentModules = data.modules;
+  state.currentEnrolment = data.enrolment;
+  state.currentLesson = null;
+
+  navigate('course-viewer');
+}
+
+// ============================================
+// COURSE VIEWER
+// ============================================
+function renderCourseViewer() {
+  const { currentCourse: course, currentModules: modules } = state;
+  if (!course) return '<div class="page">No course loaded</div>';
+
+  return `
+    <div style="margin:-28px; display:flex; height:calc(100vh - 60px);">
+      <!-- Course Sidebar -->
+      <div class="course-sidebar">
+        <div class="course-sidebar-header">
+          <button class="btn btn-ghost btn-sm mb-3" onclick="navigate('courses')">← Back</button>
+          <div class="course-sidebar-title">${course.title}</div>
+          ${state.currentEnrolment ? `
+            <div class="course-progress-summary mt-2">
+              <div class="progress-bar">
+                <div class="progress-bar-fill" style="width:${state.currentEnrolment.progress_pct || 0}%"></div>
+              </div>
+              <div class="text-sm text-muted mt-1">${state.currentEnrolment.progress_pct || 0}% complete</div>
+            </div>
+          ` : `<button class="btn btn-primary btn-sm mt-3 w-full" onclick="enrolInCourse('${course.id}')">Enrol Now</button>`}
+        </div>
+
+        ${(modules || []).map((mod, mi) => `
+          <div class="module-item">
+            <div class="module-header" onclick="toggleModule(${mi})">
+              <span class="module-num">${mi + 1}</span>
+              ${mod.title}
+            </div>
+            <div class="lesson-list" id="modLessons${mi}" ${mi !== 0 ? 'style="display:none"' : ''}>
+              ${(mod.lessons || []).map((lesson, li) => `
+                <div class="lesson-item ${state.currentLesson?.id === lesson.id ? 'active' : ''}"
+                  onclick="loadLesson('${lesson.id}', ${mi})">
+                  <span class="lesson-check">○</span>
+                  ${lesson.title}
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <!-- Course Main -->
+      <div class="course-main" id="courseMain">
+        <div class="lesson-content">
+          ${course.description ? `
+            <h2>${course.title}</h2>
+            <p>${course.description}</p>
+            <div class="card mt-4" style="background:var(--primary-light);border-color:var(--primary);">
+              <div class="card-body">
+                <strong>📚 ${modules?.length || 0} modules</strong> · 
+                <strong>⏱ ${course.estimated_hours}h estimated</strong> · 
+                <strong>📈 ${course.difficulty}</strong>
+              </div>
+            </div>
+            ${!state.currentEnrolment ? `
+              <button class="btn btn-primary mt-4" onclick="enrolInCourse('${course.id}')">Start Course →</button>
+            ` : `
+              <button class="btn btn-primary mt-4" onclick="loadFirstLesson()">Continue Learning →</button>
+            `}
+          ` : '<p class="text-muted">Select a lesson to begin.</p>'}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function toggleModule(index) {
+  const el = document.getElementById(`modLessons${index}`);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+async function enrolInCourse(courseId) {
+  const data = await api('POST', `/courses/${courseId}/enrol`);
+  if (!data?.success) return toast(data?.error || 'Enrolment failed', 'error');
+  state.currentEnrolment = data.enrolment;
+  toast('You\'re enrolled! 🎉', 'success');
+  render();
+}
+
+async function loadLesson(lessonId, moduleIndex) {
+  if (!state.currentEnrolment) {
+    toast('Please enrol in the course first', 'warning');
+    return;
+  }
+
+  // Find lesson data in modules
+  const mod = state.currentModules[moduleIndex];
+  const lesson = mod?.lessons?.find(l => l.id === lessonId);
+  if (!lesson) return;
+
+  state.currentLesson = lesson;
+  state.currentModuleIndex = moduleIndex;
+
+  // Load full lesson content
+  const data = await api('GET', `/courses/${state.currentCourse.id}`);
+  // Get lesson HTML from full course data
+  const fullMod = data?.modules?.[moduleIndex];
+  const fullLesson = fullMod?.lessons?.find(l => l.id === lessonId);
+
+  const main = document.getElementById('courseMain');
+  if (!main) return;
+
+  main.innerHTML = `
+    <div class="lesson-content" id="lessonContent">
+      <div class="flex items-center gap-2 mb-4">
+        <span class="badge badge-gray">${mod.title}</span>
+        <span class="text-sm text-muted">Lesson ${lesson.display_order}</span>
+      </div>
+      <h2>${lesson.title}</h2>
+      ${fullLesson?.content_html || lesson.content_html || `<p class="text-muted">Lesson content will appear here. Content is generated by Course Forge or added manually.</p>`}
+
+      ${renderLessonQuestions(lessonId, fullLesson)}
+
+      <div class="flex gap-3 mt-4">
+        <button class="btn btn-primary" onclick="completeLesson('${lessonId}')">
+          ✓ Mark Complete & Continue
+        </button>
+        <button class="btn btn-outline btn-sm" onclick="navigate('ai-instructor')" 
+          style="gap:6px;">🤖 Ask AI Instructor</button>
+      </div>
+    </div>
+  `;
+}
+
+function renderLessonQuestions(lessonId, lesson) {
+  if (!lesson?.questions?.length) return '';
+  return `
+    <hr class="divider" />
+    <h3>Knowledge Check</h3>
+    ${lesson.questions.map((q, qi) => {
+      if (q.question_type === 'mcq') {
+        return `
+          <div class="question-block" id="q${qi}">
+            <div class="question-text">${qi + 1}. ${q.question_text}</div>
+            <div class="options-list">
+              ${(JSON.parse(q.options || '[]')).map((opt, oi) => `
+                <div class="option-item" onclick="selectOption(${qi}, ${oi}, '${opt}', '${q.correct_answer}', '${q.explanation}')">
+                  <span>${String.fromCharCode(65 + oi)}.</span> ${opt}
+                </div>
+              `).join('')}
+            </div>
+            <div id="qFeedback${qi}"></div>
+          </div>
+        `;
+      } else {
+        return `
+          <div class="question-block">
+            <div class="question-text">${qi + 1}. ${q.question_text}</div>
+            <textarea class="open-answer-box" id="openAnswer${qi}" 
+              placeholder="Type your response here..."></textarea>
+            <button class="btn btn-secondary btn-sm mt-2" 
+              onclick="submitOpenAnswer(${qi}, '${q.id}', '${lessonId}')">
+              Submit & Analyse →
+            </button>
+            <div id="cbirResult${qi}"></div>
+          </div>
+        `;
+      }
+    }).join('')}
+  `;
+}
+
+function selectOption(qi, oi, selected, correct, explanation) {
+  const block = document.getElementById(`q${qi}`);
+  const options = block.querySelectorAll('.option-item');
+  options.forEach(o => { o.classList.remove('selected'); o.style.pointerEvents = 'none'; });
+  options[oi].classList.add('selected');
+
+  const isCorrect = selected === correct;
+  options[oi].classList.add(isCorrect ? 'correct' : 'incorrect');
+
+  if (!isCorrect) {
+    // Highlight correct answer
+    Array.from(options).forEach(o => {
+      if (o.textContent.trim().slice(3) === correct) o.classList.add('correct');
+    });
+  }
+
+  const feedback = document.getElementById(`qFeedback${qi}`);
+  feedback.innerHTML = `
+    <div class="mt-3 p-3" style="background:${isCorrect ? 'var(--success-light)' : 'var(--danger-light)'};border-radius:var(--radius-sm);">
+      <strong>${isCorrect ? '✅ Correct!' : '❌ Not quite.'}</strong>
+      ${explanation ? `<p class="mt-1" style="font-size:13px;">${explanation}</p>` : ''}
+    </div>
+  `;
+}
+
+async function submitOpenAnswer(qi, questionId, lessonId) {
+  const text = document.getElementById(`openAnswer${qi}`)?.value.trim();
+  if (!text || text.length < 20) return toast('Please write a more detailed response', 'warning');
+
+  const resultEl = document.getElementById(`cbirResult${qi}`);
+  resultEl.innerHTML = `<div class="mt-3"><div class="spinner spinner-sm"></div> <span class="text-muted text-sm"> Analysing your response...</span></div>`;
+
+  const data = await api('POST', '/ai/cbir', {
+    user_response: text,
+    course_id: state.currentCourse?.id,
+    question_id: questionId,
+    lesson_id: lessonId,
+  });
+
+  if (!data?.success) {
+    resultEl.innerHTML = '<p class="text-danger text-sm mt-2">Analysis failed. Response saved.</p>';
+    return;
+  }
+
+  const a = data.analysis;
+  const scoreColor = a.overall_score >= 4 ? 'var(--success)' : a.overall_score >= 3 ? 'var(--warning)' : 'var(--danger)';
+
+  resultEl.innerHTML = `
+    <div class="mt-3 p-3" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:var(--radius);">
+      <div class="flex items-center gap-2 mb-2">
+        <span style="font-size:18px;">🧠</span>
+        <strong>CBIR Analysis</strong>
+        <span class="badge badge-gray" style="margin-left:auto;font-size:14px;color:${scoreColor};">${a.overall_score}/5</span>
+      </div>
+      <p class="text-sm">${a.summary}</p>
+      ${a.strengths?.length ? `<p class="text-sm mt-2"><strong>Strengths:</strong> ${a.strengths.join(', ')}</p>` : ''}
+      ${a.development_areas?.length ? `<p class="text-sm"><strong>Develop:</strong> ${a.development_areas.join(', ')}</p>` : ''}
+    </div>
+  `;
+}
+
+async function completeLesson(lessonId) {
+  if (!state.currentEnrolment) return;
+  const data = await api('POST', `/courses/${state.currentCourse.id}/lessons/${lessonId}/complete`, {
+    time_spent_seconds: 300
+  });
+
+  if (data?.success) {
+    toast(`Lesson complete! ${data.progress_pct}% of course done.`, 'success');
+    if (data.status === 'completed') {
+      toast('🎉 Course complete! Issuing your certificate...', 'success', 5000);
+      const certData = await api('POST', `/certificates/issue/${state.currentEnrolment.id}`);
+      if (certData?.success) {
+        toast(`Certificate issued: ${certData.certificate.certificate_number}`, 'success', 6000);
+      }
+    }
+    state.currentEnrolment.progress_pct = data.progress_pct;
+    loadFirstLesson();
+  }
+}
+
+function loadFirstLesson() {
+  const firstMod = state.currentModules?.[0];
+  const firstLesson = firstMod?.lessons?.[0];
+  if (firstLesson) loadLesson(firstLesson.id, 0);
+}
+
+// ============================================
+// AI INSTRUCTOR
+// ============================================
+function renderAIInstructor() {
+  const langs = [
+    ['en','English'],['fr','Français'],['ar','العربية'],['es','Español'],
+    ['pt','Português'],['sw','Kiswahili'],['so','Somali'],['am','አማርኛ'],
+    ['ti','ትግርኛ'],['ha','Hausa'],['bn','বাংলা'],['hi','हिन्दी'],
+  ];
+
+  return `
+    <div class="ai-chat-container">
+      <div class="card mb-3">
+        <div class="card-body" style="padding:12px 16px;">
+          <div class="flex items-center gap-3">
+            <span style="font-size:24px;">🤖</span>
+            <div>
+              <div style="font-weight:700;">AI Instructor</div>
+              <div class="text-sm text-muted">Expert in humanitarian operations, protection, logistics, WASH, CVA and more. Responds in 12 languages.</div>
+            </div>
+            <div style="margin-left:auto;">
+              <select class="lang-select" id="chatLang">
+                ${langs.map(([code, name]) => `<option value="${code}">${name}</option>`).join('')}
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="chat-message ai">
+          <div class="chat-avatar ai">🤖</div>
+          <div class="chat-bubble">
+            Hello! I'm your OpsTrainer AI Instructor. I specialise in humanitarian operations, protection, logistics, WASH, cash & voucher assistance, and field safety.<br><br>
+            What would you like to explore today? You can ask me anything about humanitarian training.
+          </div>
+        </div>
+      </div>
+
+      <div class="chat-input-row">
+        <input type="text" class="chat-input" id="chatInput" 
+          placeholder="Ask me anything about humanitarian training..."
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}" />
+        <button class="btn btn-primary" onclick="sendChat()">Send</button>
+      </div>
+    </div>
+  `;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input?.value.trim();
+  if (!msg) return;
+  input.value = '';
+  input.disabled = true;
+
+  const lang = document.getElementById('chatLang')?.value || 'en';
+  const initials = (state.user?.full_name || 'U').split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
+
+  const messages = document.getElementById('chatMessages');
+  messages.innerHTML += `
+    <div class="chat-message user">
+      <div class="chat-avatar user-av">${initials}</div>
+      <div class="chat-bubble">${msg}</div>
+    </div>
+    <div class="chat-message ai" id="aiTyping">
+      <div class="chat-avatar ai">🤖</div>
+      <div class="chat-bubble"><span class="spinner spinner-sm"></span></div>
+    </div>
+  `;
+  messages.scrollTop = messages.scrollHeight;
+
+  const data = await api('POST', '/ai/chat', {
+    message: msg,
+    history: state.chatHistory,
+    session_id: state.chatSessionId,
+    course_id: state.currentCourse?.id,
+    language: lang,
+  });
+
+  document.getElementById('aiTyping')?.remove();
+  input.disabled = false;
+  input.focus();
+
+  if (!data?.success) {
+    messages.innerHTML += `<div class="chat-message ai"><div class="chat-avatar ai">🤖</div><div class="chat-bubble text-danger">Sorry, I couldn't connect. Please try again.</div></div>`;
+    return;
+  }
+
+  state.chatHistory.push({ role: 'user', content: msg });
+  state.chatHistory.push({ role: 'assistant', content: data.reply });
+  if (state.chatHistory.length > 20) state.chatHistory = state.chatHistory.slice(-20);
+  state.chatSessionId = data.session_id;
+
+  messages.innerHTML += `
+    <div class="chat-message ai">
+      <div class="chat-avatar ai">🤖</div>
+      <div class="chat-bubble">${data.reply.replace(/\n/g, '<br>')}</div>
+    </div>
+  `;
+  messages.scrollTop = messages.scrollHeight;
+}
+
+// ============================================
+// CERTIFICATES
+// ============================================
+function renderCertificates() {
+  return `
+    <div>
+      <div id="certsList">
+        <div class="empty-state"><div class="spinner"></div></div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadCertificates() {
+  const data = await api('GET', '/certificates/my');
+  const certs = data?.certificates || [];
+  const el = document.getElementById('certsList');
+  if (!el) return;
+
+  if (certs.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">🎓</div>
+      <div class="empty-state-title">No certificates yet</div>
+      <div class="empty-state-desc">Complete a course to earn your first certificate.</div>
+      <button class="btn btn-primary" onclick="navigate('courses')">Browse Courses</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="courses-grid">
+      ${certs.map(cert => `
+        <div class="card">
+          <div class="course-card-thumb platform"></div>
+          <div class="card-body">
+            <div class="flex items-center gap-2 mb-3">
+              <span style="font-size:32px;">🎓</span>
+              <div>
+                <div style="font-weight:700;font-size:15px;">${cert.course_title}</div>
+                <div class="text-sm text-muted">${cert.category || 'Humanitarian Training'}</div>
+              </div>
+            </div>
+            <div class="text-sm text-muted mb-1">Issued: <strong>${new Date(cert.issued_at).toLocaleDateString()}</strong></div>
+            <div class="text-sm text-muted mb-3">Expires: <strong>${cert.expires_at ? new Date(cert.expires_at).toLocaleDateString() : 'Never'}</strong></div>
+            <div style="font-family:monospace;font-size:11px;background:var(--gray-100);padding:6px 10px;border-radius:4px;margin-bottom:12px;">
+              ${cert.certificate_number}
+            </div>
+            <div class="flex gap-2">
+              <button class="btn btn-secondary btn-sm" onclick="verifyCert('${cert.certificate_number}')">🔍 Verify</button>
+              <button class="btn btn-primary btn-sm" onclick="copyVerifyLink('${cert.certificate_number}')">📋 Copy Link</button>
+            </div>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function copyVerifyLink(num) {
+  const url = `${window.location.origin}/verify/${num}`;
+  navigator.clipboard.writeText(url).then(() => toast('Verify link copied!', 'success'));
+}
+
+async function verifyCert(num) {
+  const data = await api('GET', `/certificates/verify/${num}`);
+  if (data?.valid) {
+    toast(`✅ Valid certificate — ${data.certificate.learner_name}`, 'success', 5000);
+  } else {
+    toast('Certificate is invalid or revoked', 'error');
+  }
+}
+
+// ============================================
+// CBIR REPORT
+// ============================================
+function renderCBIRReport() {
+  return `
+    <div id="cbirContainer">
+      <div class="empty-state"><div class="spinner"></div></div>
+    </div>
+  `;
+}
+
+async function loadCBIRReport() {
+  const data = await api('GET', '/ai/cbir/report');
+  const el = document.getElementById('cbirContainer');
+  if (!el) return;
+
+  if (!data?.report) {
+    el.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🧠</div>
+        <div class="empty-state-title">No CBIR data yet</div>
+        <div class="empty-state-desc">Complete open-ended questions in your courses to build your cognitive profile.</div>
+        <button class="btn btn-primary" onclick="navigate('courses')">Start Training</button>
+      </div>
+    `;
+    return;
+  }
+
+  const r = data.report;
+  const pillars = [
+    { key: 'reasoning_quality', label: 'Reasoning Quality', icon: '🎯' },
+    { key: 'decision_making', label: 'Decision Making', icon: '⚖️' },
+    { key: 'emotional_tone', label: 'Emotional Tone', icon: '💙' },
+    { key: 'ethical_alignment', label: 'Ethical Alignment', icon: '⚖️' },
+    { key: 'communication_clarity', label: 'Communication', icon: '💬' },
+    { key: 'adaptive_thinking', label: 'Adaptive Thinking', icon: '🔄' },
+  ];
+
+  const scoreColor = (s) => s >= 4 ? '#10b981' : s >= 3 ? '#f59e0b' : '#ef4444';
+  const trendIcon = r.trend === 'improving' ? '📈' : r.trend === 'declining' ? '📉' : '➡️';
+
+  el.innerHTML = `
+    <div class="stats-grid mb-4">
+      <div class="stat-card">
+        <div class="stat-icon">🧠</div>
+        <div class="stat-label">Overall Score</div>
+        <div class="stat-value" style="color:${scoreColor(r.averages?.overall)}">${r.averages?.overall ?? '—'}/5</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">${trendIcon}</div>
+        <div class="stat-label">Trend</div>
+        <div class="stat-value" style="font-size:18px;padding-top:8px;">${r.trend?.replace('_', ' ') || '—'}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📊</div>
+        <div class="stat-label">Analyses Done</div>
+        <div class="stat-value">${r.session_count}</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">🧠 CBIR Pillars</span></div>
+      <div class="card-body">
+        <div class="cbir-grid">
+          ${pillars.map(p => {
+            const score = r.averages?.[p.key] ?? null;
+            const pct = score ? (score / 5) * 100 : 0;
+            const color = scoreColor(score);
+            return `
+              <div class="cbir-pillar">
+                <div>${p.icon}</div>
+                <div class="cbir-score" style="color:${color}">${score ?? '—'}</div>
+                <div class="cbir-label">${p.label}</div>
+                <div class="cbir-bar">
+                  <div class="cbir-bar-fill" style="width:${pct}%;background:${color}"></div>
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================
+// ADMIN DASHBOARD
+// ============================================
+function renderAdminDashboard() {
+  return `
+    <div id="adminDashboard">
+      <div class="empty-state"><div class="spinner"></div></div>
+    </div>
+  `;
+}
+
+async function loadAdminDashboard() {
+  const data = await api('GET', '/org/dashboard');
+  const el = document.getElementById('adminDashboard');
+  if (!el || !data?.success) return;
+
+  const d = data.dashboard;
+  el.innerHTML = `
+    <div class="stats-grid mb-4">
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">Active Users</div>
+        <div class="stat-value">${d.users.active_users}</div>
+        <div class="stat-meta">of ${d.users.total_users} total</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-label">Total Enrolments</div>
+        <div class="stat-value">${d.enrolments.total_enrolments}</div>
+        <div class="stat-meta">${d.enrolments.avg_progress}% avg progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-label">Completions</div>
+        <div class="stat-value">${d.enrolments.completed}</div>
+        <div class="stat-meta">${d.enrolments.in_progress} in progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🎓</div>
+        <div class="stat-label">Active Certs</div>
+        <div class="stat-value">${d.certificates.active_certs}</div>
+        ${d.certificates.expiring_soon > 0 ? `<div class="stat-meta text-danger">⚠️ ${d.certificates.expiring_soon} expiring soon</div>` : ''}
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🧠</div>
+        <div class="stat-label">CBIR Avg Score</div>
+        <div class="stat-value">${d.cbir.avg_score ?? '—'}</div>
+        <div class="stat-meta">${d.cbir.total_analyses} analyses</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🔥</div>
+        <div class="stat-label">Org Courses</div>
+        <div class="stat-value">${d.courses.org_courses}</div>
+        <div class="stat-meta"><button class="btn btn-primary btn-sm" onclick="navigate('forge')">+ Forge New</button></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+      <div class="card">
+        <div class="card-header"><span class="card-title">Top Courses</span></div>
+        <div class="table-wrap">
+          <table>
+            <tr><th>Course</th><th>Enrolments</th><th>Completions</th></tr>
+            ${d.top_courses.map(c => `
+              <tr>
+                <td>${c.title}</td>
+                <td>${c.enrolments}</td>
+                <td>${c.completions}</td>
+              </tr>
+            `).join('') || '<tr><td colspan="3" class="text-muted text-center">No data yet</td></tr>'}
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><span class="card-title">Recent Activity</span></div>
+        <div class="table-wrap">
+          <table>
+            <tr><th>User</th><th>Course</th><th>Progress</th></tr>
+            ${d.recent_activity.map(a => `
+              <tr>
+                <td>${a.full_name}</td>
+                <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${a.course_title}</td>
+                <td><span class="badge badge-${a.status === 'completed' ? 'success' : 'primary'}">${a.progress_pct}%</span></td>
+              </tr>
+            `).join('') || '<tr><td colspan="3" class="text-muted text-center">No activity yet</td></tr>'}
+          </table>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// ============================================
+// ADMIN COURSES
+// ============================================
+function renderAdminCourses() {
+  return `
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <div></div>
+        <div class="flex gap-2">
+          <button class="btn btn-outline btn-sm" onclick="navigate('forge')">🔥 Course Forge</button>
+          <button class="btn btn-primary btn-sm" onclick="showCreateCourseModal()">+ Create Course</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="table-wrap" id="adminCoursesList">
+          <div class="empty-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadAdminCourses() {
+  const data = await api('GET', '/courses');
+  const el = document.getElementById('adminCoursesList');
+  if (!el) return;
+
+  const courses = data?.courses || [];
+  if (courses.length === 0) {
+    el.innerHTML = `<div class="empty-state">
+      <div class="empty-state-icon">📭</div>
+      <div class="empty-state-title">No courses yet</div>
+      <div class="empty-state-desc">Create your first course with Course Forge or manually.</div>
+      <button class="btn btn-primary" onclick="navigate('forge')">🔥 Open Course Forge</button>
+    </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <table>
+      <tr><th>Course</th><th>Type</th><th>Difficulty</th><th>Hours</th><th>Status</th><th>Actions</th></tr>
+      ${courses.map(c => `
+        <tr>
+          <td>
+            <div style="font-weight:600;">${c.title}</div>
+            ${c.forge_generated ? '<span class="badge badge-success" style="font-size:10px;">🔥 Forge</span>' : ''}
+          </td>
+          <td>${c.is_platform_course ? '<span class="badge badge-purple">Platform</span>' : '<span class="badge badge-primary">Org</span>'}</td>
+          <td>${c.difficulty || '—'}</td>
+          <td>${c.estimated_hours}h</td>
+          <td><span class="badge badge-${c.is_published ? 'success' : 'gray'}">${c.is_published ? 'Published' : 'Draft'}</span></td>
+          <td>
+            <div class="flex gap-1">
+              <button class="btn btn-ghost btn-sm" onclick="openCourse('${c.id}')">👁 View</button>
+              ${!c.is_platform_course ? `<button class="btn btn-ghost btn-sm" onclick="togglePublish('${c.id}', ${c.is_published})">${c.is_published ? 'Unpublish' : 'Publish'}</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `).join('')}
+    </table>
+  `;
+}
+
+async function togglePublish(courseId, current) {
+  const data = await api('PUT', `/courses/${courseId}`, { is_published: current ? 0 : 1 });
+  if (data?.success) {
+    toast(data.course.is_published ? 'Course published' : 'Course unpublished', 'success');
+    loadAdminCourses();
+  }
+}
+
+// ============================================
+// ADMIN USERS
+// ============================================
+function renderAdminUsers() {
+  return `
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <div></div>
+        <button class="btn btn-primary btn-sm" onclick="showInviteModal()">+ Invite User</button>
+      </div>
+      <div class="card">
+        <div class="table-wrap" id="usersList">
+          <div class="empty-state"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadAdminUsers() {
+  const data = await api('GET', '/org/users');
+  const el = document.getElementById('usersList');
+  if (!el) return;
+
+  el.innerHTML = `
+    <div class="card-header">
+      <span class="card-title">${data.count} / ${data.max_users} seats used</span>
+    </div>
+    <table>
+      <tr><th>Name</th><th>Email</th><th>Role</th><th>Last Login</th><th>Status</th><th>Actions</th></tr>
+      ${(data.users || []).map(u => `
+        <tr>
+          <td><strong>${u.full_name}</strong></td>
+          <td class="text-muted">${u.email}</td>
+          <td><span class="badge badge-primary">${u.role}</span></td>
+          <td class="text-muted">${u.last_login_at ? new Date(u.last_login_at).toLocaleDateString() : 'Never'}</td>
+          <td><span class="badge badge-${u.is_active ? 'success' : 'gray'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td>
+            ${u.id !== state.user?.id ? `
+              <select class="form-select" style="width:110px;padding:4px 8px;font-size:12px;" 
+                onchange="updateUserRole('${u.id}', this.value)">
+                <option value="learner" ${u.role==='learner'?'selected':''}>Learner</option>
+                <option value="manager" ${u.role==='manager'?'selected':''}>Manager</option>
+                <option value="org_admin" ${u.role==='org_admin'?'selected':''}>Admin</option>
+              </select>
+            ` : '<span class="text-muted text-sm">You</span>'}
+          </td>
+        </tr>
+      `).join('')}
+    </table>
+  `;
+}
+
+async function updateUserRole(userId, role) {
+  const data = await api('PUT', `/org/users/${userId}`, { role });
+  if (data?.success) toast(`Role updated to ${role}`, 'success');
+  else toast(data?.error || 'Update failed', 'error');
+}
+
+function showInviteModal() {
+  const modal = document.createElement('div');
+  modal.className = 'modal-backdrop';
+  modal.id = 'inviteModal';
+  modal.innerHTML = `
+    <div class="modal">
+      <div class="modal-header">
+        <span class="modal-title">Invite User</span>
+        <button class="btn btn-ghost btn-icon" onclick="document.getElementById('inviteModal').remove()">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Full Name</label>
+          <input type="text" class="form-input" id="inviteName" placeholder="Jane Smith" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email</label>
+          <input type="email" class="form-input" id="inviteEmail" placeholder="jane@org.org" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Role</label>
+          <select class="form-select" id="inviteRole">
+            <option value="learner">Learner</option>
+            <option value="manager">Manager</option>
+            <option value="org_admin">Admin</option>
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="document.getElementById('inviteModal').remove()">Cancel</button>
+        <button class="btn btn-primary" onclick="doInvite()">Add User</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+}
+
+async function doInvite() {
+  const full_name = document.getElementById('inviteName').value.trim();
+  const email = document.getElementById('inviteEmail').value.trim();
+  const role = document.getElementById('inviteRole').value;
+  if (!full_name || !email) return toast('Name and email required', 'error');
+
+  const data = await api('POST', '/org/users/invite', { full_name, email, role });
+  document.getElementById('inviteModal')?.remove();
+
+  if (!data?.success) return toast(data?.error || 'Invite failed', 'error');
+  toast(`User added! Temp password: ${data.temp_password}`, 'success', 8000);
+  loadAdminUsers();
+}
+
+// ============================================
+// COURSE FORGE
+// ============================================
+function renderForge() {
+  return `
+    <div class="forge-wizard">
+      ${renderForgeSteps()}
+      <div id="forgePanel">${renderForgeStep1()}</div>
+    </div>
+  `;
+}
+
+function renderForgeSteps() {
+  const steps = ['Define Course', 'Review Structure', 'Generate Content', 'Publish'];
+  return `
+    <div class="forge-steps mb-4">
+      ${steps.map((label, i) => {
+        const num = i + 1;
+        const cls = state.forgeStep === num ? 'active' : state.forgeStep > num ? 'done' : '';
+        return `
+          ${i > 0 ? `<div class="forge-step-line ${state.forgeStep > i ? 'done' : ''}"></div>` : ''}
+          <div class="forge-step ${cls}">
+            <div class="forge-step-num">${state.forgeStep > num ? '✓' : num}</div>
+            <span>${label}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderForgeStep1() {
+  return `
+    <div class="forge-panel">
+      <div class="forge-panel-title">🔥 Design Your Course</div>
+      <div class="forge-panel-desc">Tell the AI what you need. The more detail, the better the result.</div>
+
+      <div class="form-group">
+        <label class="form-label">Course Topic *</label>
+        <input type="text" class="form-input" id="forgeTopic" 
+          placeholder="e.g. Cash & Voucher Assistance in Urban Settings"
+          value="${state.forgeTopic || ''}" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Target Audience *</label>
+        <input type="text" class="form-input" id="forgeAudience"
+          placeholder="e.g. Field Officers with 2+ years experience"
+          value="${state.forgeAudience || ''}" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Learning Outcomes * (what learners will be able to do)</label>
+        <div class="outcomes-list" id="outcomesList">
+          ${state.forgeOutcomes.map((o, i) => `
+            <div class="outcome-row">
+              <span class="text-muted" style="font-size:13px;min-width:20px;">${i + 1}.</span>
+              <input type="text" class="form-input" id="outcome${i}" 
+                placeholder="Outcome ${i + 1}" value="${o}" />
+              ${i > 0 ? `<button class="btn btn-ghost btn-icon" onclick="removeOutcome(${i})">✕</button>` : ''}
+            </div>
+          `).join('')}
+        </div>
+        <button class="btn btn-ghost btn-sm mt-2" onclick="addOutcome()">+ Add Outcome</button>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Number of Modules</label>
+          <select class="form-select" id="forgeModules">
+            <option value="3">3 modules</option>
+            <option value="4" selected>4 modules</option>
+            <option value="5">5 modules</option>
+            <option value="6">6 modules</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Estimated Duration</label>
+          <select class="form-select" id="forgeHours">
+            <option value="1">1 hour</option>
+            <option value="2" selected>2 hours</option>
+            <option value="3">3 hours</option>
+            <option value="4">4 hours</option>
+            <option value="8">8 hours (full day)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Organisation Doctrine <span class="text-muted">(optional)</span></label>
+        <textarea class="form-textarea" id="forgeDoctrine" rows="3"
+          placeholder="Paste your SOPs, protocols, or guidelines here. The AI will incorporate them into the course content.">${state.forgeDoctrine || ''}</textarea>
+      </div>
+
+      <div class="flex gap-3 mt-4">
+        <button class="btn btn-primary" onclick="runForgeStep1()" id="forgeBtn1" style="min-width:180px;">
+          🔥 Generate Course Structure
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function addOutcome() {
+  const inputs = document.querySelectorAll('[id^="outcome"]');
+  state.forgeOutcomes = Array.from(inputs).map(el => el.value);
+  state.forgeOutcomes.push('');
+  document.getElementById('forgePanel').innerHTML = renderForgeStep1();
+}
+
+function removeOutcome(index) {
+  const inputs = document.querySelectorAll('[id^="outcome"]');
+  state.forgeOutcomes = Array.from(inputs).map(el => el.value);
+  state.forgeOutcomes.splice(index, 1);
+  document.getElementById('forgePanel').innerHTML = renderForgeStep1();
+}
+
+async function runForgeStep1() {
+  const topic = document.getElementById('forgeTopic')?.value.trim();
+  const audience = document.getElementById('forgeAudience')?.value.trim();
+  const outcomes = Array.from(document.querySelectorAll('[id^="outcome"]')).map(el => el.value.trim()).filter(Boolean);
+  const num_modules = parseInt(document.getElementById('forgeModules')?.value || '4');
+  const estimated_hours = parseFloat(document.getElementById('forgeHours')?.value || '2');
+  const doctrine_text = document.getElementById('forgeDoctrine')?.value.trim();
+
+  if (!topic || !audience || outcomes.length === 0) {
+    return toast('Topic, audience, and at least one outcome are required', 'error');
+  }
+
+  state.forgeTopic = topic;
+  state.forgeAudience = audience;
+  state.forgeOutcomes = outcomes;
+  state.forgeDoctrine = doctrine_text;
+
+  document.getElementById('forgePanel').innerHTML = `
+    <div class="forge-panel generating-overlay">
+      <div class="spinner"></div>
+      <div style="font-size:18px;font-weight:700;color:var(--gray-900);margin-bottom:8px;">Designing your course...</div>
+      <div class="text-muted">AI is structuring modules, lessons and competency mappings.</div>
+      <div class="text-sm text-muted mt-3">This takes about 10-20 seconds ☕</div>
+    </div>
+  `;
+
+  const data = await api('POST', '/forge/generate-structure', {
+    topic, audience, outcomes, num_modules, estimated_hours,
+    doctrine_text: doctrine_text || undefined,
+    language: 'en',
+  });
+
+  if (!data?.success) {
+    toast(data?.error || 'Generation failed. Please try again.', 'error');
+    document.getElementById('forgePanel').innerHTML = renderForgeStep1();
+    return;
+  }
+
+  state.forgeJobId = data.job_id;
+  state.forgeStructure = data.structure;
+  state.forgeStep = 2;
+  render();
+}
+
+function renderForgeStep2() {
+  const s = state.forgeStructure;
+  if (!s) return '<p>No structure loaded.</p>';
+
+  return `
+    <div class="forge-panel">
+      <div class="forge-panel-title">✅ Review Course Structure</div>
+      <div class="forge-panel-desc">The AI has designed your course. Review and adjust before generating full content.</div>
+
+      <div class="card mb-4" style="background:var(--primary-light);border-color:var(--primary)">
+        <div class="card-body">
+          <div style="font-size:18px;font-weight:800;color:var(--gray-900);">${s.title}</div>
+          ${s.subtitle ? `<div class="text-muted mt-1">${s.subtitle}</div>` : ''}
+          <div class="flex gap-3 mt-2">
+            <span class="badge badge-primary">${s.difficulty || 'intermediate'}</span>
+            <span class="badge badge-gray">📂 ${s.category || 'Training'}</span>
+            <span class="badge badge-gray">${s.modules?.length || 0} modules</span>
+          </div>
+          ${s.description ? `<p class="mt-3" style="font-size:13px;">${s.description}</p>` : ''}
+        </div>
+      </div>
+
+      <h3 style="font-size:15px;font-weight:700;margin-bottom:12px;">Course Modules</h3>
+      <div class="structure-preview">
+        ${(s.modules || []).map((mod, mi) => `
+          <div class="module-preview">
+            <div class="module-preview-header">
+              <span>📖 Module ${mi + 1}: ${mod.title}</span>
+              <span class="text-muted text-sm">~${mod.estimated_minutes} min</span>
+            </div>
+            <div class="module-preview-lessons">
+              ${(mod.lessons || []).map(l => `
+                <div class="lesson-preview">
+                  <span>${l.content_type === 'scenario' ? '🎭' : l.content_type === 'assessment' ? '📝' : '📄'}</span>
+                  ${l.title}
+                  <span class="text-muted text-sm">(${l.estimated_minutes}min)</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      ${s.suggested_competencies?.length ? `
+        <div class="mt-4">
+          <div class="text-sm font-bold mb-2">Competency Mappings</div>
+          <div class="flex gap-2" style="flex-wrap:wrap;">
+            ${s.suggested_competencies.map(c => `<span class="badge badge-gray">${c}</span>`).join('')}
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="flex gap-3 mt-4">
+        <button class="btn btn-secondary" onclick="state.forgeStep=1;render()">← Back</button>
+        <button class="btn btn-primary" onclick="runForgeStep3()" style="min-width:200px;">
+          🚀 Generate Full Content →
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function runForgeStep3() {
+  const s = state.forgeStructure;
+  const modules = s.modules || [];
+  state.forgeStep = 3;
+
+  document.getElementById('forgePanel').innerHTML = `
+    <div class="forge-panel">
+      <div class="forge-panel-title">⚡ Generating Course Content</div>
+      <div class="forge-panel-desc">Writing lessons, scenarios and questions for each module...</div>
+      <div id="moduleProgress" class="mt-4">
+        ${modules.map((m, i) => `
+          <div class="flex items-center gap-3 mb-3" id="modProgress${i}">
+            <div class="spinner spinner-sm"></div>
+            <div>
+              <div style="font-size:13px;font-weight:600;">Module ${i + 1}: ${m.title}</div>
+              <div class="text-sm text-muted" id="modStatus${i}">Waiting...</div>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+
+  state.forgeModulesContent = [];
+
+  // Generate modules sequentially to avoid rate limits
+  for (let i = 0; i < modules.length; i++) {
+    const mod = modules[i];
+    const statusEl = document.getElementById(`modStatus${i}`);
+    const progressEl = document.getElementById(`modProgress${i}`);
+
+    if (statusEl) statusEl.textContent = 'Generating...';
+
+    const data = await api('POST', '/forge/generate-module', {
+      job_id: state.forgeJobId,
+      module_index: i,
+      module_title: mod.title,
+      module_description: mod.description,
+      lessons: mod.lessons || [],
+      course_title: s.title,
+      audience: state.forgeAudience,
+      doctrine_text: state.forgeDoctrine,
+    });
+
+    if (data?.success) {
+      state.forgeModulesContent.push(data.content);
+      if (progressEl) {
+        progressEl.innerHTML = `
+          <span style="color:var(--success);font-size:18px;">✅</span>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--success);">Module ${i + 1}: ${mod.title}</div>
+            <div class="text-sm text-muted">${data.content?.lessons?.length || 0} lessons generated</div>
+          </div>
+        `;
+      }
+    } else {
+      if (statusEl) statusEl.textContent = 'Generation failed — will use structure only';
+      state.forgeModulesContent.push({ module_title: mod.title, lessons: [] });
+    }
+  }
+
+  state.forgeStep = 4;
+  render();
+}
+
+function renderForgeStep4() {
+  const s = state.forgeStructure;
+  const totalLessons = state.forgeModulesContent.reduce((acc, m) => acc + (m.lessons?.length || 0), 0);
+  const totalQuestions = state.forgeModulesContent.reduce((acc, m) =>
+    acc + (m.lessons || []).reduce((a, l) => a + (l.questions?.length || 0), 0), 0);
+
+  return `
+    <div class="forge-panel">
+      <div class="forge-panel-title">🎉 Ready to Publish</div>
+      <div class="forge-panel-desc">Your course has been generated. Review the summary and publish when ready.</div>
+
+      <div class="card mb-4" style="background:var(--success-light);border-color:var(--success);">
+        <div class="card-body">
+          <div style="font-size:16px;font-weight:800;color:var(--gray-900);">${s.title}</div>
+          <div class="flex gap-3 mt-2">
+            <span>📖 ${s.modules?.length} modules</span>
+            <span>📄 ${totalLessons} lessons</span>
+            <span>❓ ${totalQuestions} questions</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="structure-preview mb-4">
+        ${state.forgeModulesContent.map((m, i) => `
+          <div class="module-preview">
+            <div class="module-preview-header">
+              <span>✅ Module ${i + 1}: ${m.module_title}</span>
+              <span class="badge badge-success">${m.lessons?.length || 0} lessons</span>
+            </div>
+          </div>
+        `).join('')}
+      </div>
+
+      <div class="flex gap-3">
+        <button class="btn btn-secondary" onclick="state.forgeStep=2;render()">← Back to Structure</button>
+        <button class="btn btn-success" onclick="publishForge()" style="min-width:160px;">
+          🚀 Publish Course
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function publishForge() {
+  const s = state.forgeStructure;
+  const btn = document.querySelector('.forge-panel .btn-success');
+  if (btn) { btn.disabled = true; btn.textContent = 'Publishing...'; }
+
+  const data = await api('POST', '/forge/publish', {
+    job_id: state.forgeJobId,
+    course_data: {
+      title: s.title,
+      description: s.description,
+      category: s.category,
+      difficulty: s.difficulty,
+      estimated_hours: parseFloat(document.getElementById('forgeHours')?.value || '2'),
+    },
+    modules_data: state.forgeModulesContent,
+  });
+
+  if (!data?.success) {
+    toast(data?.error || 'Publish failed', 'error');
+    if (btn) { btn.disabled = false; btn.textContent = '🚀 Publish Course'; }
+    return;
+  }
+
+  toast(`"${s.title}" published successfully! 🎉`, 'success', 5000);
+  // Reset forge state
+  state.forgeStep = 1;
+  state.forgeStructure = null;
+  state.forgeJobId = null;
+  state.forgeModulesContent = [];
+  state.forgeOutcomes = ['', '', ''];
+  state.forgeTopic = '';
+  state.forgeAudience = '';
+  state.forgeDoctrine = '';
+
+  navigate('admin-courses');
+}
+
+// ---- Forge step routing ----
+const forgeStepRenderers = {
+  1: renderForgeStep1,
+  2: renderForgeStep2,
+  3: () => '<div class="forge-panel generating-overlay"><div class="spinner"></div><p>Generating...</p></div>',
+  4: renderForgeStep4,
+};
+
+// ============================================
+// CERTIFICATE VERIFY PAGE (public)
+// ============================================
+function renderVerifyPage(num) {
+  return `
+    <div class="verify-page">
+      <div class="verify-card">
+        <div class="auth-logo" style="margin-bottom:24px;">
+          <div class="logo-mark">
+            <div class="logo-icon">🌍</div>
+            <div class="logo-text">Ops<span>Trainer</span></div>
+          </div>
+        </div>
+        <div id="verifyContent">
+          <div class="spinner" style="margin:0 auto;"></div>
+          <p class="text-muted mt-3">Verifying certificate...</p>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+async function loadVerifyCert(num) {
+  const data = await api('GET', `/certificates/verify/${num}`);
+  const el = document.getElementById('verifyContent');
+  if (!el) return;
+
+  if (!data || !data.success) {
+    el.innerHTML = `<div class="verify-icon">❌</div><div class="verify-title text-danger">Certificate Not Found</div><p class="text-muted">This certificate number does not exist in our system.</p>`;
+    return;
+  }
+
+  const c = data.certificate;
+  el.innerHTML = `
+    <div class="verify-icon">${data.valid ? '✅' : '❌'}</div>
+    <div class="verify-title" style="color:${data.valid ? 'var(--success)' : 'var(--danger)'}">
+      ${data.valid ? 'Valid Certificate' : data.revoked ? 'Certificate Revoked' : 'Certificate Expired'}
+    </div>
+    <hr class="divider" />
+    <div class="verify-detail"><strong>${c.learner_name}</strong></div>
+    <div class="verify-detail" style="font-size:16px;font-weight:700;margin:8px 0;">${c.course_title}</div>
+    <div class="verify-detail">Issued by <strong>${c.org_name}</strong></div>
+    <div class="verify-detail">Issued: <strong>${new Date(c.issued_at).toLocaleDateString()}</strong></div>
+    ${c.expires_at ? `<div class="verify-detail">Expires: <strong>${new Date(c.expires_at).toLocaleDateString()}</strong></div>` : ''}
+    <div style="font-family:monospace;font-size:12px;color:var(--gray-500);margin-top:16px;">${c.number}</div>
+  `;
+}
+
+// ============================================
+// HELPERS & LIFECYCLE
+// ============================================
+function logout() {
+  api('POST', '/auth/logout', { refreshToken: Auth.getRefreshToken() });
+  Auth.clearTokens();
+  state.user = null;
+  state.org = null;
+  state.currentView = 'login';
+  render();
+}
+
+function showUserMenu() {
+  // Simple logout confirmation for now
+  if (confirm(`Sign out as ${state.user?.full_name}?`)) logout();
+}
+
+function bindEvents() {
+  // Keyboard shortcuts
+  document.onkeydown = (e) => {
+    if (e.key === 'Escape') {
+      document.querySelectorAll('.modal-backdrop').forEach(m => m.remove());
+    }
+  };
+}
+
+// ---- View lifecycle: run after render ----
+const viewLoaders = {
+  dashboard: loadLearnerDashboard,
+  courses: loadCourses,
+  'ai-instructor': null,
+  certificates: loadCertificates,
+  cbir: loadCBIRReport,
+  'admin-dashboard': loadAdminDashboard,
+  'admin-courses': loadAdminCourses,
+  'admin-users': loadAdminUsers,
+  forge: () => {
+    const panel = document.getElementById('forgePanel');
+    if (panel) panel.innerHTML = (forgeStepRenderers[state.forgeStep] || renderForgeStep1)();
+  },
+};
+
+// ---- Patch render to call loaders ----
+const _originalRender = render;
+function render() {
+  _originalRender();
+  // After DOM update, run loader
+  setTimeout(() => {
+    const loader = viewLoaders[state.currentView];
+    if (typeof loader === 'function') loader();
+  }, 0);
+}
+
+// ============================================
+// BOOT
+// ============================================
+async function boot() {
+  // Check if verify page
+  if (window.location.pathname.startsWith('/verify/')) {
+    render();
+    return;
+  }
+
+  // Restore session
+  if (Auth.isLoggedIn()) {
+    const data = await api('GET', '/auth/me');
+    if (data?.success && data.user) {
+      state.user = data.user;
+      state.org = data.user;
+      state.currentView = 'dashboard';
+    } else {
+      Auth.clearTokens();
+    }
+  }
+
+  render();
+}
+
+// Handle browser back/forward
+window.addEventListener('popstate', () => render());
+
+// Start
+boot();
+</script>
+</body>
+</html>
