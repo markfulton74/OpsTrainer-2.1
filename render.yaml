@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: opstrainer
+    env: node
+    region: oregon
+    plan: free
+    buildCommand: npm install && npm run migrate && npm run seed
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: DB_PATH
+        value: ./data/opstrainer.db
+      - key: DEEPSEEK_API_KEY
+        sync: false
+      - key: DEEPSEEK_API_URL
+        value: https://api.deepseek.com/v1/chat/completions
+      - key: DEEPSEEK_MODEL
+        value: deepseek-chat
+      - key: APP_URL
+        sync: false
+      - key: EMAIL_FROM
+        value: noreply@opstrainer.co.za
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+
