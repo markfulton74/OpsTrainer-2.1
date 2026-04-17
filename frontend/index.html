@@ -1601,6 +1601,7 @@ const viewTitles = {
   'admin-courses': ['Manage Courses', 'All organisation courses'],
   forge: ['Course Forge', 'AI-powered course builder'],
   'admin-users': ['Users', 'Manage organisation members'],
+  'course-editor': ['Course Editor', 'Build course modules and lessons'],
   'course-viewer': [state.currentCourse?.title || 'Course', 'In progress'],
 };
 
@@ -1627,6 +1628,7 @@ function renderCurrentView() {
     cbir: renderCBIRReport,
     'admin-dashboard': renderAdminDashboard,
     'admin-courses': renderAdminCourses,
+    'course-editor': renderCourseEditor,
     forge: renderForge,
     'admin-users': renderAdminUsers,
     'course-viewer': renderCourseViewer,
@@ -2470,6 +2472,7 @@ async function loadAdminCourses() {
               <button class="btn btn-ghost btn-sm" onclick="openCourse('${c.id}')">👁 View</button>
               ${!c.is_platform_course ? `
                 <button class="btn btn-ghost btn-sm" onclick="showEditCourseModal('${c.id}')">✏️ Edit</button>
+                <button class="btn btn-ghost btn-sm" onclick="navigate('course-editor',{editorCourseId:'${c.id}'})">📝 Content</button>
                 <button class="btn btn-ghost btn-sm" onclick="togglePublish('${c.id}', ${c.is_published})">${c.is_published ? 'Unpublish' : 'Publish'}</button>
                 <button class="btn btn-ghost btn-sm" onclick="deleteCourse('${c.id}')" style="color:var(--danger)">🗑</button>
               ` : ''}
@@ -2622,6 +2625,316 @@ async function deleteCourse(courseId) {
     loadAdminCourses();
   } else {
     toast(data?.error || 'Failed to delete course', 'error');
+  }
+}
+
+// ============================================
+// COURSE CONTENT EDITOR
+// ============================================
+function renderCourseEditor() {
+  return `
+    <div id="courseEditorWrap">
+      <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;">
+        <button class="btn btn-outline btn-sm" onclick="navigate('admin-courses')">← Back</button>
+        <h2 id="editorCourseTitle" style="font-size:1.25rem;font-weight:700;">Loading...</h2>
+        <span id="editorPublishBadge"></span>
+      </div>
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:1.5rem;align-items:start;">
+        <!-- Modules sidebar -->
+        <div class="card" id="modulesSidebar">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+            <strong>Modules</strong>
+            <button class="btn btn-primary btn-sm" onclick="showAddModuleModal()">+ Module</button>
+          </div>
+          <div id="modulesList"><div class="empty-state"><div class="spinner"></div></div></div>
+        </div>
+        <!-- Lesson editor panel -->
+        <div class="card" id="lessonPanel">
+          <div class="empty-state">
+            <div class="empty-state-icon">📋</div>
+            <div class="empty-state-title">Select a module</div>
+            <div class="empty-state-desc">Choose a module on the left to view and edit its lessons.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+let _editorCourseId = null;
+let _editorModules = [];
+let _activeModuleId = null;
+
+async function loadCourseEditor() {
+  const courseId = state.editorCourseId;
+  if (!courseId) { navigate('admin-courses'); return; }
+  _editorCourseId = courseId;
+
+  const data = await api('GET', `/courses/${courseId}`);
+  if (!data?.success) { toast('Course not found', 'error'); navigate('admin-courses'); return; }
+
+  const c = data.course;
+  const titleEl = document.getElementById('editorCourseTitle');
+  const badgeEl = document.getElementById('editorPublishBadge');
+  if (titleEl) titleEl.textContent = c.title;
+  if (badgeEl) badgeEl.innerHTML = `<span class="badge badge-${c.is_published ? 'success' : 'gray'}">${c.is_published ? 'Published' : 'Draft'}</span>`;
+
+  _editorModules = data.modules || [];
+  renderModulesList();
+}
+
+function renderModulesList() {
+  const el = document.getElementById('modulesList');
+  if (!el) return;
+  if (!_editorModules.length) {
+    el.innerHTML = `<div style="color:var(--gray-500);font-size:0.85rem;text-align:center;padding:1rem;">No modules yet.<br>Click + Module to add one.</div>`;
+    return;
+  }
+  el.innerHTML = _editorModules.map((m, i) => `
+    <div class="module-item ${_activeModuleId === m.id ? 'active' : ''}" 
+         style="display:flex;align-items:center;justify-content:space-between;padding:0.6rem 0.75rem;border-radius:8px;cursor:pointer;margin-bottom:4px;background:${_activeModuleId === m.id ? 'var(--primary-light, #eff6ff)' : 'transparent'};border:1px solid ${_activeModuleId === m.id ? 'var(--primary)' : 'transparent'};"
+         onclick="selectModule('${m.id}')">
+      <div style="font-weight:${_activeModuleId === m.id ? '600' : '400'};font-size:0.875rem;flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">
+        <span style="color:var(--gray-400);margin-right:6px;">${i+1}.</span>${m.title}
+      </div>
+      <div style="display:flex;gap:4px;flex-shrink:0;">
+        <button class="btn btn-ghost btn-sm" style="padding:2px 6px;" onclick="event.stopPropagation();editModule('${m.id}')">✏️</button>
+        <button class="btn btn-ghost btn-sm" style="padding:2px 6px;color:var(--danger);" onclick="event.stopPropagation();deleteModule('${m.id}')">🗑</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function selectModule(moduleId) {
+  _activeModuleId = moduleId;
+  renderModulesList();
+  const mod = _editorModules.find(m => m.id === moduleId);
+  const panel = document.getElementById('lessonPanel');
+  if (!panel) return;
+
+  // Fetch fresh lesson data
+  const data = await api('GET', `/courses/${_editorCourseId}`);
+  const freshMod = (data?.modules || []).find(m => m.id === moduleId);
+  const lessons = freshMod?.lessons || [];
+
+  panel.innerHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+      <div>
+        <h3 style="font-size:1rem;font-weight:700;">${mod?.title || 'Module'}</h3>
+        <div style="color:var(--gray-500);font-size:0.8rem;">${lessons.length} lesson${lessons.length !== 1 ? 's' : ''}</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="showAddLessonModal('${moduleId}')">+ Lesson</button>
+    </div>
+    <div id="lessonsList">
+      ${lessons.length === 0 ? `<div style="color:var(--gray-500);text-align:center;padding:2rem;font-size:0.875rem;">No lessons yet. Click + Lesson to add one.</div>` :
+        lessons.map((l, i) => `
+          <div style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--gray-100);display:flex;align-items:center;justify-content:center;font-size:0.8rem;font-weight:600;flex-shrink:0;">${i+1}</div>
+            <div style="flex:1;">
+              <div style="font-weight:600;font-size:0.875rem;">${l.title}</div>
+              <div style="font-size:0.75rem;color:var(--gray-500);">${l.content_type || 'text'} · ${l.estimated_minutes || 10} min</div>
+            </div>
+            <div style="display:flex;gap:4px;">
+              <button class="btn btn-ghost btn-sm" onclick="editLesson('${moduleId}','${l.id}')">✏️ Edit</button>
+              <button class="btn btn-ghost btn-sm" style="color:var(--danger);" onclick="deleteLesson('${moduleId}','${l.id}')">🗑</button>
+            </div>
+          </div>
+        `).join('')
+      }
+    </div>
+  `;
+}
+
+// --- Module modals ---
+function showAddModuleModal(existing = null) {
+  const isEdit = !!existing;
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="modModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;">
+      <div class="card" style="width:100%;max-width:440px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <h3 style="font-weight:700;">${isEdit ? 'Edit Module' : '+ Add Module'}</h3>
+          <button onclick="document.getElementById('modModal').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">×</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Module Title *</label>
+          <input type="text" class="form-input" id="modTitle" value="${isEdit ? existing.title : ''}" placeholder="e.g. Introduction to Safety" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input" id="modDesc" rows="2" placeholder="What does this module cover?">${isEdit ? (existing.description || '') : ''}</textarea>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+          <button class="btn btn-primary" style="flex:1;" id="modSaveBtn" onclick="${isEdit ? `saveEditModule('${existing.id}')` : 'saveNewModule()'}">
+            ${isEdit ? 'Save Changes' : 'Add Module'}
+          </button>
+          <button class="btn btn-outline" onclick="document.getElementById('modModal').remove()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `);
+  document.getElementById('modTitle').focus();
+}
+
+async function saveNewModule() {
+  const btn = document.getElementById('modSaveBtn');
+  btn.disabled = true; btn.textContent = 'Adding...';
+  const title = document.getElementById('modTitle').value.trim();
+  const description = document.getElementById('modDesc').value.trim();
+  if (!title) { toast('Title required', 'error'); btn.disabled=false; btn.textContent='Add Module'; return; }
+  const data = await api('POST', `/courses/${_editorCourseId}/modules`, { title, description });
+  if (data?.success) {
+    toast('Module added ✅', 'success');
+    document.getElementById('modModal').remove();
+    // Refresh
+    const fresh = await api('GET', `/courses/${_editorCourseId}`);
+    _editorModules = fresh?.modules || [];
+    renderModulesList();
+  } else {
+    toast(data?.error || 'Failed', 'error');
+    btn.disabled=false; btn.textContent='Add Module';
+  }
+}
+
+async function editModule(moduleId) {
+  const mod = _editorModules.find(m => m.id === moduleId);
+  if (!mod) return;
+  showAddModuleModal(mod);
+}
+
+async function saveEditModule(moduleId) {
+  const btn = document.getElementById('modSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const title = document.getElementById('modTitle').value.trim();
+  const description = document.getElementById('modDesc').value.trim();
+  if (!title) { toast('Title required', 'error'); btn.disabled=false; btn.textContent='Save Changes'; return; }
+  const data = await api('PUT', `/courses/${_editorCourseId}/modules/${moduleId}`, { title, description });
+  if (data?.success) {
+    toast('Module updated ✅', 'success');
+    document.getElementById('modModal').remove();
+    const fresh = await api('GET', `/courses/${_editorCourseId}`);
+    _editorModules = fresh?.modules || [];
+    renderModulesList();
+    if (_activeModuleId === moduleId) selectModule(moduleId);
+  } else {
+    toast(data?.error || 'Failed', 'error');
+    btn.disabled=false; btn.textContent='Save Changes';
+  }
+}
+
+async function deleteModule(moduleId) {
+  if (!confirm('Delete this module and all its lessons?')) return;
+  const data = await api('DELETE', `/courses/${_editorCourseId}/modules/${moduleId}`);
+  if (data?.success) {
+    toast('Module deleted', 'success');
+    if (_activeModuleId === moduleId) {
+      _activeModuleId = null;
+      document.getElementById('lessonPanel').innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><div class="empty-state-title">Select a module</div></div>';
+    }
+    const fresh = await api('GET', `/courses/${_editorCourseId}`);
+    _editorModules = fresh?.modules || [];
+    renderModulesList();
+  } else {
+    toast(data?.error || 'Failed', 'error');
+  }
+}
+
+// --- Lesson modals ---
+function showAddLessonModal(moduleId, existing = null) {
+  const isEdit = !!existing;
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="lessonModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;">
+      <div class="card" style="width:100%;max-width:620px;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+          <h3 style="font-weight:700;">${isEdit ? 'Edit Lesson' : '+ Add Lesson'}</h3>
+          <button onclick="document.getElementById('lessonModal').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">×</button>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Lesson Title *</label>
+            <input type="text" class="form-input" id="lTitle" value="${isEdit ? existing.title : ''}" placeholder="e.g. What is WASH?" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Duration (min)</label>
+            <input type="number" class="form-input" id="lMins" value="${isEdit ? (existing.estimated_minutes || 10) : 10}" min="1" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Content Type</label>
+          <select class="form-input" id="lType">
+            <option value="text" ${(!isEdit || existing.content_type === 'text') ? 'selected' : ''}>📄 Text / Reading</option>
+            <option value="video" ${isEdit && existing.content_type === 'video' ? 'selected' : ''}>🎬 Video</option>
+            <option value="quiz" ${isEdit && existing.content_type === 'quiz' ? 'selected' : ''}>❓ Quiz</option>
+            <option value="activity" ${isEdit && existing.content_type === 'activity' ? 'selected' : ''}>🛠 Activity</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Content (HTML or plain text)</label>
+          <textarea class="form-input" id="lContent" rows="8" placeholder="Write lesson content here. You can use HTML for formatting, e.g. <h3>Title</h3><p>Paragraph...</p>">${isEdit ? (existing.content_html || '') : ''}</textarea>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:1rem;">
+          <button class="btn btn-primary" style="flex:1;" id="lSaveBtn" onclick="${isEdit ? `saveEditLesson('${moduleId}','${existing.id}')` : `saveNewLesson('${moduleId}')`}">
+            ${isEdit ? 'Save Changes' : 'Add Lesson'}
+          </button>
+          <button class="btn btn-outline" onclick="document.getElementById('lessonModal').remove()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `);
+  document.getElementById('lTitle').focus();
+}
+
+async function saveNewLesson(moduleId) {
+  const btn = document.getElementById('lSaveBtn');
+  btn.disabled = true; btn.textContent = 'Adding...';
+  const title = document.getElementById('lTitle').value.trim();
+  const content_html = document.getElementById('lContent').value.trim();
+  const content_type = document.getElementById('lType').value;
+  const estimated_minutes = parseInt(document.getElementById('lMins').value) || 10;
+  if (!title) { toast('Title required', 'error'); btn.disabled=false; btn.textContent='Add Lesson'; return; }
+  const data = await api('POST', `/courses/${_editorCourseId}/modules/${moduleId}/lessons`, { title, content_html, content_type, estimated_minutes });
+  if (data?.success) {
+    toast('Lesson added ✅', 'success');
+    document.getElementById('lessonModal').remove();
+    selectModule(moduleId);
+  } else {
+    toast(data?.error || 'Failed', 'error');
+    btn.disabled=false; btn.textContent='Add Lesson';
+  }
+}
+
+async function editLesson(moduleId, lessonId) {
+  const data = await api('GET', `/courses/${_editorCourseId}/modules/${moduleId}/lessons/${lessonId}`);
+  if (!data?.success) return toast('Could not load lesson', 'error');
+  showAddLessonModal(moduleId, data.lesson);
+}
+
+async function saveEditLesson(moduleId, lessonId) {
+  const btn = document.getElementById('lSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const title = document.getElementById('lTitle').value.trim();
+  const content_html = document.getElementById('lContent').value.trim();
+  const content_type = document.getElementById('lType').value;
+  const estimated_minutes = parseInt(document.getElementById('lMins').value) || 10;
+  if (!title) { toast('Title required', 'error'); btn.disabled=false; btn.textContent='Save Changes'; return; }
+  const data = await api('PUT', `/courses/${_editorCourseId}/modules/${moduleId}/lessons/${lessonId}`, { title, content_html, content_type, estimated_minutes });
+  if (data?.success) {
+    toast('Lesson updated ✅', 'success');
+    document.getElementById('lessonModal').remove();
+    selectModule(moduleId);
+  } else {
+    toast(data?.error || 'Failed', 'error');
+    btn.disabled=false; btn.textContent='Save Changes';
+  }
+}
+
+async function deleteLesson(moduleId, lessonId) {
+  if (!confirm('Delete this lesson?')) return;
+  const data = await api('DELETE', `/courses/${_editorCourseId}/modules/${moduleId}/lessons/${lessonId}`);
+  if (data?.success) {
+    toast('Lesson deleted', 'success');
+    selectModule(moduleId);
+  } else {
+    toast(data?.error || 'Failed', 'error');
   }
 }
 
@@ -3194,6 +3507,7 @@ const viewLoaders = {
   cbir: loadCBIRReport,
   'admin-dashboard': loadAdminDashboard,
   'admin-courses': loadAdminCourses,
+  'course-editor': loadCourseEditor,
   'admin-users': loadAdminUsers,
   forge: () => {
     const panel = document.getElementById('forgePanel');
@@ -3218,7 +3532,12 @@ async function boot() {
     const data = await api('GET', '/auth/me');
     if (data?.success && data.user) {
       state.user = data.user;
-      state.org = data.user;
+      state.org = {
+        id: data.user.org_id,
+        name: data.user.org_name,
+        subscription_tier: data.user.subscription_tier,
+        subscription_status: data.user.subscription_status
+      };
       state.currentView = 'dashboard';
     } else {
       Auth.clearTokens();
