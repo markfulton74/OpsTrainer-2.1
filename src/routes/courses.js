@@ -292,4 +292,132 @@ router.delete('/:id', requireAdmin, (req, res) => {
 });
 
 
+// ============================================
+// MODULES — CRUD
+// POST   /api/courses/:id/modules
+// PUT    /api/courses/:id/modules/:moduleId
+// DELETE /api/courses/:id/modules/:moduleId
+// ============================================
+router.post('/:id/modules', requireAdmin, (req, res) => {
+  try {
+    const { org_id } = req.user;
+    const course = db.prepare('SELECT * FROM courses WHERE id = ? AND org_id = ?').get(req.params.id, org_id);
+    if (!course) return res.status(404).json({ success: false, error: 'Course not found' });
+
+    const { title, description } = req.body;
+    if (!title) return res.status(400).json({ success: false, error: 'Module title required' });
+
+    const id = require('crypto').randomUUID();
+    const maxOrder = db.prepare('SELECT COALESCE(MAX(display_order),0) as m FROM modules WHERE course_id = ?').get(req.params.id).m;
+
+    db.prepare(`INSERT INTO modules (id, course_id, title, description, display_order) VALUES (?, ?, ?, ?, ?)`)
+      .run(id, req.params.id, title, description || null, maxOrder + 1);
+
+    const mod = db.prepare('SELECT * FROM modules WHERE id = ?').get(id);
+    res.status(201).json({ success: true, module: mod });
+  } catch (err) {
+    console.error('Create module error:', err);
+    res.status(500).json({ success: false, error: 'Failed to create module' });
+  }
+});
+
+router.put('/:id/modules/:moduleId', requireAdmin, (req, res) => {
+  try {
+    const { org_id } = req.user;
+    const course = db.prepare('SELECT * FROM courses WHERE id = ? AND org_id = ?').get(req.params.id, org_id);
+    if (!course) return res.status(404).json({ success: false, error: 'Course not found' });
+
+    const allowed = ['title', 'description', 'display_order'];
+    const updates = {};
+    for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
+    if (!Object.keys(updates).length) return res.status(400).json({ success: false, error: 'Nothing to update' });
+
+    const setClause = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+    db.prepare(`UPDATE modules SET ${setClause} WHERE id = ?`).run(...Object.values(updates), req.params.moduleId);
+
+    const mod = db.prepare('SELECT * FROM modules WHERE id = ?').get(req.params.moduleId);
+    res.json({ success: true, module: mod });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to update module' });
+  }
+});
+
+router.delete('/:id/modules/:moduleId', requireAdmin, (req, res) => {
+  try {
+    const { org_id } = req.user;
+    const course = db.prepare('SELECT * FROM courses WHERE id = ? AND org_id = ?').get(req.params.id, org_id);
+    if (!course) return res.status(404).json({ success: false, error: 'Course not found' });
+
+    db.prepare('DELETE FROM lessons WHERE module_id = ?').run(req.params.moduleId);
+    db.prepare('DELETE FROM modules WHERE id = ?').run(req.params.moduleId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to delete module' });
+  }
+});
+
+// ============================================
+// LESSONS — CRUD
+// POST   /api/courses/:id/modules/:moduleId/lessons
+// PUT    /api/courses/:id/modules/:moduleId/lessons/:lessonId
+// DELETE /api/courses/:id/modules/:moduleId/lessons/:lessonId
+// GET    /api/courses/:id/modules/:moduleId/lessons/:lessonId (full content)
+// ============================================
+router.post('/:id/modules/:moduleId/lessons', requireAdmin, (req, res) => {
+  try {
+    const { title, content_type, content_html, estimated_minutes } = req.body;
+    if (!title) return res.status(400).json({ success: false, error: 'Lesson title required' });
+
+    const id = require('crypto').randomUUID();
+    const maxOrder = db.prepare('SELECT COALESCE(MAX(display_order),0) as m FROM lessons WHERE module_id = ?').get(req.params.moduleId).m;
+
+    db.prepare(`INSERT INTO lessons (id, module_id, title, content_type, content_html, estimated_minutes, display_order)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(id, req.params.moduleId, title, content_type || 'text', content_html || '', estimated_minutes || 10, maxOrder + 1);
+
+    const lesson = db.prepare('SELECT * FROM lessons WHERE id = ?').get(id);
+    res.status(201).json({ success: true, lesson });
+  } catch (err) {
+    console.error('Create lesson error:', err);
+    res.status(500).json({ success: false, error: 'Failed to create lesson' });
+  }
+});
+
+router.put('/:id/modules/:moduleId/lessons/:lessonId', requireAdmin, (req, res) => {
+  try {
+    const allowed = ['title', 'content_type', 'content_html', 'estimated_minutes', 'display_order'];
+    const updates = {};
+    for (const k of allowed) if (req.body[k] !== undefined) updates[k] = req.body[k];
+    if (!Object.keys(updates).length) return res.status(400).json({ success: false, error: 'Nothing to update' });
+
+    const setClause = Object.keys(updates).map(k => `${k} = ?`).join(', ');
+    db.prepare(`UPDATE lessons SET ${setClause} WHERE id = ?`).run(...Object.values(updates), req.params.lessonId);
+
+    const lesson = db.prepare('SELECT * FROM lessons WHERE id = ?').get(req.params.lessonId);
+    res.json({ success: true, lesson });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to update lesson' });
+  }
+});
+
+router.delete('/:id/modules/:moduleId/lessons/:lessonId', requireAdmin, (req, res) => {
+  try {
+    db.prepare('DELETE FROM lessons WHERE id = ?').run(req.params.lessonId);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to delete lesson' });
+  }
+});
+
+router.get('/:id/modules/:moduleId/lessons/:lessonId', requireAuth, (req, res) => {
+  try {
+    const lesson = db.prepare('SELECT * FROM lessons WHERE id = ?').get(req.params.lessonId);
+    if (!lesson) return res.status(404).json({ success: false, error: 'Lesson not found' });
+    res.json({ success: true, lesson });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to fetch lesson' });
+  }
+});
+
+
 module.exports = router;
