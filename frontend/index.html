@@ -2437,7 +2437,7 @@ function renderAdminCourses() {
 }
 
 async function loadAdminCourses() {
-  const data = await api('GET', '/courses');
+  const data = await api('GET', '/courses?all=1');
   const el = document.getElementById('adminCoursesList');
   if (!el) return;
 
@@ -2468,7 +2468,11 @@ async function loadAdminCourses() {
           <td>
             <div class="flex gap-1">
               <button class="btn btn-ghost btn-sm" onclick="openCourse('${c.id}')">👁 View</button>
-              ${!c.is_platform_course ? `<button class="btn btn-ghost btn-sm" onclick="togglePublish('${c.id}', ${c.is_published})">${c.is_published ? 'Unpublish' : 'Publish'}</button>` : ''}
+              ${!c.is_platform_course ? `
+                <button class="btn btn-ghost btn-sm" onclick="showEditCourseModal('${c.id}')">✏️ Edit</button>
+                <button class="btn btn-ghost btn-sm" onclick="togglePublish('${c.id}', ${c.is_published})">${c.is_published ? 'Unpublish' : 'Publish'}</button>
+                <button class="btn btn-ghost btn-sm" onclick="deleteCourse('${c.id}')" style="color:var(--danger)">🗑</button>
+              ` : ''}
             </div>
           </td>
         </tr>
@@ -2482,6 +2486,142 @@ async function togglePublish(courseId, current) {
   if (data?.success) {
     toast(data.course.is_published ? 'Course published' : 'Course unpublished', 'success');
     loadAdminCourses();
+  }
+}
+
+// ============================================
+// COURSE MODAL (Create / Edit)
+// ============================================
+function courseModalHTML(course = null) {
+  const isEdit = !!course;
+  return `
+    <div id="courseModal" style="position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;">
+      <div class="card" style="width:100%;max-width:560px;max-height:90vh;overflow-y:auto;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+          <h2 style="font-size:1.25rem;font-weight:700;">${isEdit ? '✏️ Edit Course' : '+ Create Course'}</h2>
+          <button onclick="document.getElementById('courseModal').remove()" style="background:none;border:none;font-size:1.5rem;cursor:pointer;">×</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Course Title *</label>
+          <input type="text" class="form-input" id="cTitle" value="${isEdit ? (course.title || '') : ''}" placeholder="e.g. Emergency First Aid Level 1" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea class="form-input" id="cDesc" rows="3" placeholder="What will learners achieve?">${isEdit ? (course.description || '') : ''}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <input type="text" class="form-input" id="cCat" value="${isEdit ? (course.category || '') : ''}" placeholder="e.g. Safety, Health, Leadership" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Difficulty</label>
+            <select class="form-input" id="cDiff">
+              <option value="beginner" ${(!isEdit || course.difficulty==='beginner') ? 'selected' : ''}>Beginner</option>
+              <option value="intermediate" ${isEdit && course.difficulty==='intermediate' ? 'selected' : ''}>Intermediate</option>
+              <option value="advanced" ${isEdit && course.difficulty==='advanced' ? 'selected' : ''}>Advanced</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Estimated Hours</label>
+            <input type="number" class="form-input" id="cHours" value="${isEdit ? (course.estimated_hours || 1) : 1}" min="0.5" step="0.5" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Language</label>
+            <select class="form-input" id="cLang">
+              <option value="en" ${(!isEdit || course.language==='en') ? 'selected' : ''}>English</option>
+              <option value="fr" ${isEdit && course.language==='fr' ? 'selected' : ''}>French</option>
+              <option value="es" ${isEdit && course.language==='es' ? 'selected' : ''}>Spanish</option>
+              <option value="ar" ${isEdit && course.language==='ar' ? 'selected' : ''}>Arabic</option>
+              <option value="pt" ${isEdit && course.language==='pt' ? 'selected' : ''}>Portuguese</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:0.75rem;">
+          <input type="checkbox" id="cFree" ${(!isEdit || course.is_free_for_org) ? 'checked' : ''} style="width:auto;" />
+          <label for="cFree" class="form-label" style="margin:0;">Free for organisation members</label>
+        </div>
+        <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
+          <button class="btn btn-primary" style="flex:1;" onclick="${isEdit ? `saveEditCourse('${course.id}')` : 'saveNewCourse()'}" id="cSaveBtn">
+            ${isEdit ? 'Save Changes' : 'Create Course'}
+          </button>
+          <button class="btn btn-outline" onclick="document.getElementById('courseModal').remove()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function showCreateCourseModal() {
+  document.body.insertAdjacentHTML('beforeend', courseModalHTML(null));
+  document.getElementById('cTitle').focus();
+}
+
+async function showEditCourseModal(courseId) {
+  const data = await api('GET', `/courses/${courseId}`);
+  if (!data?.success) return toast('Could not load course', 'error');
+  document.body.insertAdjacentHTML('beforeend', courseModalHTML(data.course));
+  document.getElementById('cTitle').focus();
+}
+
+async function saveNewCourse() {
+  const btn = document.getElementById('cSaveBtn');
+  btn.disabled = true; btn.textContent = 'Creating...';
+  const payload = {
+    title: document.getElementById('cTitle').value.trim(),
+    description: document.getElementById('cDesc').value.trim(),
+    category: document.getElementById('cCat').value.trim(),
+    difficulty: document.getElementById('cDiff').value,
+    estimated_hours: parseFloat(document.getElementById('cHours').value) || 1,
+    language: document.getElementById('cLang').value,
+    is_free_for_org: document.getElementById('cFree').checked
+  };
+  if (!payload.title) { toast('Title is required', 'error'); btn.disabled=false; btn.textContent='Create Course'; return; }
+  const data = await api('POST', '/courses', payload);
+  if (data?.success) {
+    toast('Course created! ✅', 'success');
+    document.getElementById('courseModal').remove();
+    loadAdminCourses();
+  } else {
+    toast(data?.error || 'Failed to create course', 'error');
+    btn.disabled=false; btn.textContent='Create Course';
+  }
+}
+
+async function saveEditCourse(courseId) {
+  const btn = document.getElementById('cSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving...';
+  const payload = {
+    title: document.getElementById('cTitle').value.trim(),
+    description: document.getElementById('cDesc').value.trim(),
+    category: document.getElementById('cCat').value.trim(),
+    difficulty: document.getElementById('cDiff').value,
+    estimated_hours: parseFloat(document.getElementById('cHours').value) || 1,
+    language: document.getElementById('cLang').value,
+    is_free_for_org: document.getElementById('cFree').checked ? 1 : 0
+  };
+  if (!payload.title) { toast('Title is required', 'error'); btn.disabled=false; btn.textContent='Save Changes'; return; }
+  const data = await api('PUT', `/courses/${courseId}`, payload);
+  if (data?.success) {
+    toast('Course updated! ✅', 'success');
+    document.getElementById('courseModal').remove();
+    loadAdminCourses();
+  } else {
+    toast(data?.error || 'Failed to update course', 'error');
+    btn.disabled=false; btn.textContent='Save Changes';
+  }
+}
+
+async function deleteCourse(courseId) {
+  if (!confirm('Delete this course? This cannot be undone.')) return;
+  const data = await api('DELETE', `/courses/${courseId}`);
+  if (data?.success) {
+    toast('Course deleted', 'success');
+    loadAdminCourses();
+  } else {
+    toast(data?.error || 'Failed to delete course', 'error');
   }
 }
 
