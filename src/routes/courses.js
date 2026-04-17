@@ -21,7 +21,12 @@ const router = express.Router();
 // ============================================
 router.get('/', requireAuth, (req, res) => {
   try {
-    const { org_id } = req.user;
+    const { org_id, role } = req.user;
+    const isAdmin = ['org_admin', 'superadmin', 'manager'].includes(role);
+    const showAll = isAdmin && req.query.all === '1';
+
+    const publishedFilter = showAll ? '' : 'AND c.is_published = 1';
+
     const courses = db.prepare(`
       SELECT c.*,
              u.full_name as created_by_name,
@@ -29,7 +34,8 @@ router.get('/', requireAuth, (req, res) => {
       FROM courses c
       LEFT JOIN users u ON u.id = c.created_by
       LEFT JOIN enrolments e ON e.course_id = c.id AND e.org_id = ?
-      WHERE c.is_published = 1 AND (c.org_id = ? OR c.is_platform_course = 1)
+      WHERE (c.org_id = ? OR c.is_platform_course = 1)
+      ${publishedFilter}
       GROUP BY c.id
       ORDER BY c.is_platform_course DESC, c.created_at DESC
     `).all(org_id, org_id);
@@ -48,11 +54,15 @@ router.get('/', requireAuth, (req, res) => {
 router.get('/:id', requireAuth, (req, res) => {
   try {
     const { org_id, id: userId } = req.user;
+    const { role } = req.user;
+    const isAdmin = ['org_admin', 'superadmin', 'manager'].includes(role);
+    const publishedClause = isAdmin ? '' : 'AND c.is_published = 1';
+
     const course = db.prepare(`
       SELECT c.*, u.full_name as created_by_name
       FROM courses c
       LEFT JOIN users u ON u.id = c.created_by
-      WHERE c.id = ? AND (c.org_id = ? OR c.is_platform_course = 1) AND c.is_published = 1
+      WHERE c.id = ? AND (c.org_id = ? OR c.is_platform_course = 1) ${publishedClause}
     `).get(req.params.id, org_id);
 
     if (!course) {
@@ -255,5 +265,31 @@ router.post('/:id/lessons/:lessonId/complete', requireAuth, (req, res) => {
     res.status(500).json({ success: false, error: 'Failed to record completion' });
   }
 });
+
+// ============================================
+// DELETE /api/courses/:id
+// ============================================
+router.delete('/:id', requireAdmin, (req, res) => {
+  try {
+    const { org_id } = req.user;
+    const course = db.prepare('SELECT * FROM courses WHERE id = ? AND org_id = ?').get(req.params.id, org_id);
+    if (!course) return res.status(404).json({ success: false, error: 'Course not found' });
+
+    // Cascade delete modules, lessons, enrolments
+    const modules = db.prepare('SELECT id FROM modules WHERE course_id = ?').all(req.params.id);
+    for (const mod of modules) {
+      db.prepare('DELETE FROM lessons WHERE module_id = ?').run(mod.id);
+    }
+    db.prepare('DELETE FROM modules WHERE course_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM enrolments WHERE course_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM courses WHERE id = ?').run(req.params.id);
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete course error:', err);
+    res.status(500).json({ success: false, error: 'Failed to delete course' });
+  }
+});
+
 
 module.exports = router;
