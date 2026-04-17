@@ -101,4 +101,10 @@ function seed() {
   console.log('🎉 Seed complete');
 }
 
-seed();
+// Export for use by server.js auto-seed
+module.exports = seed;
+
+// Run directly if called as a script
+if (require.main === module) {
+  seed();
+}
