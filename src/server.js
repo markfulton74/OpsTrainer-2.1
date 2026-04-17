@@ -96,16 +96,13 @@ app.get('/api/health', (req, res) => {
 // ============================================
 // Static Frontend
 // ============================================
-const publicDir = path.join(__dirname, '..', 'frontend', 'dist');
-const publicDirDev = path.join(__dirname, '..', 'frontend');
+const publicDir = path.join(__dirname, '..', 'frontend');
 
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
   app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
-} else if (fs.existsSync(publicDirDev)) {
-  app.use(express.static(publicDirDev));
 }
 
 // ============================================
@@ -148,3 +145,4 @@ app.listen(PORT, () => {
 });
 
 module.exports = app;
+
