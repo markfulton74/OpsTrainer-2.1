@@ -1409,6 +1409,12 @@ function render() {
   `;
 
   bindEvents();
+
+  // Run view loader after DOM update
+  setTimeout(() => {
+    const loader = viewLoaders[state.currentView];
+    if (typeof loader === 'function') loader();
+  }, 0);
 }
 
 // ---- AUTH PAGE ----
@@ -3055,16 +3061,7 @@ const viewLoaders = {
   },
 };
 
-// ---- Patch render to call loaders ----
-const _originalRender = render;
-function render() {
-  _originalRender();
-  // After DOM update, run loader
-  setTimeout(() => {
-    const loader = viewLoaders[state.currentView];
-    if (typeof loader === 'function') loader();
-  }, 0);
-}
+// View loaders are now called directly inside render()
 
 // ============================================
 // BOOT
