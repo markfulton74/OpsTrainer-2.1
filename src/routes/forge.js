@@ -103,9 +103,21 @@ Return a JSON object with this exact structure:
       const raw = await callAI(systemPrompt, userMessage, { json_mode: true, temperature: 0.6, max_tokens: 4000 });
       structureJson = JSON.parse(raw);
     } catch (aiErr) {
+      const errMsg = aiErr.message || 'Unknown AI error';
+      console.error('AI generation error:', errMsg);
       db.prepare("UPDATE forge_jobs SET status = 'failed', error_message = ? WHERE id = ?")
-        .run(`AI generation failed: ${aiErr.message}`, jobId);
-      return res.status(500).json({ success: false, error: 'AI generation failed. Please try again.' });
+        .run(`AI generation failed: ${errMsg}`, jobId);
+      // Return the actual error so the client can show it
+      return res.status(500).json({ 
+        success: false, 
+        error: errMsg.includes('DEEPSEEK_API_KEY not configured') 
+          ? 'DEEPSEEK_API_KEY not configured on the server'
+          : errMsg.includes('401') || errMsg.includes('403')
+          ? 'DeepSeek API key is invalid or unauthorised'
+          : errMsg.includes('429')
+          ? 'DeepSeek rate limit reached — please wait a moment and try again'
+          : `AI generation failed: ${errMsg}`
+      });
     }
 
     // Save structure to job
