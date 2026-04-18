@@ -1761,11 +1761,23 @@ async function loadLearnerDashboard() {
   document.getElementById('statCerts') && (document.getElementById('statCerts').textContent = certs.length);
   document.getElementById('statCbir') && (document.getElementById('statCbir').textContent = cbir?.averages?.overall ?? '—');
 
-  // In-progress courses
-  const inProgress = courses.filter(c => c.enrolment_count > 0);
+  // In-progress courses — load with enrolment data
   const cl = document.getElementById('continueLearning');
-  if (cl && inProgress.length > 0) {
-    cl.innerHTML = `<div class="courses-grid">${inProgress.slice(0, 3).map(c => renderCourseCard(c)).join('')}</div>`;
+  if (cl) {
+    // Fetch full enrolment list
+    const enrolData = await api('GET', '/courses?enrolled=1');
+    const enrolCourses = (enrolData?.courses || []).filter(c => (c.progress_pct ?? 0) > 0 || c.is_enrolled);
+    if (enrolCourses.length > 0) {
+      cl.innerHTML = `<div class="courses-grid">${enrolCourses.slice(0, 3).map(c => renderCourseCard(c)).join('')}</div>`;
+    } else {
+      cl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🚀</div>
+          <div class="empty-state-title">Start your training journey</div>
+          <div class="empty-state-desc">Browse available courses to get started.</div>
+          <button class="btn btn-primary btn-sm mt-3" onclick="navigate('courses')">Browse Courses</button>
+        </div>`;
+    }
   }
 }
 
@@ -1801,7 +1813,9 @@ function renderCourses() {
 function renderCourseCard(course, enrolment = null) {
   const diffColors = { beginner: 'success', intermediate: 'warning', advanced: 'danger' };
   const thumb = course.is_platform_course ? 'platform' : course.forge_generated ? 'forge' : '';
-  const pct = enrolment?.progress_pct || 0;
+  // Support both enrolment passed directly and embedded in course object
+  const pct = enrolment?.progress_pct ?? course.progress_pct ?? 0;
+  const isEnrolled = pct > 0 || enrolment || course.is_enrolled;
 
   return `
     <div class="course-card" onclick="openCourse('${course.id}')">
@@ -1813,16 +1827,21 @@ function renderCourseCard(course, enrolment = null) {
           <span class="badge badge-${diffColors[course.difficulty] || 'gray'}">${course.difficulty || 'beginner'}</span>
         </div>
         <div class="course-card-title">${course.title}</div>
-        ${course.description ? `<div class="course-card-desc">${course.description}</div>` : ''}
+        ${course.description ? `<div class="course-card-desc">${course.description.substring(0,100)}${course.description.length > 100 ? '...' : ''}</div>` : ''}
         <div class="course-card-meta">
           <span>⏱ ${course.estimated_hours}h</span>
           ${course.category ? `<span>📂 ${course.category}</span>` : ''}
         </div>
-        ${pct > 0 ? `
-          <div class="progress-bar mt-2">
-            <div class="progress-bar-fill" style="width:${pct}%"></div>
+        ${isEnrolled ? `
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <span style="font-size:0.72rem;color:var(--gray-500);">Progress</span>
+              <span style="font-size:0.72rem;font-weight:600;color:var(--primary);">${pct}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-bar-fill" style="width:${pct}%"></div>
+            </div>
           </div>
-          <div class="text-sm text-muted mt-1">${pct}% complete</div>
         ` : ''}
       </div>
     </div>
@@ -1877,7 +1896,7 @@ function renderCourseViewer() {
   if (!course) return '<div class="page">No course loaded</div>';
 
   return `
-    <div style="margin:-28px; display:flex; height:calc(100vh - 60px);">
+    <div style="margin:-28px; display:flex; height:calc(100vh - 60px); overflow:hidden;">
       <!-- Course Sidebar -->
       <div class="course-sidebar">
         <div class="course-sidebar-header">
@@ -2115,9 +2134,25 @@ async function completeLesson(lessonId) {
 }
 
 function loadFirstLesson() {
-  const firstMod = state.currentModules?.[0];
-  const firstLesson = firstMod?.lessons?.[0];
+  const mods = state.currentModules;
+  if (!mods || mods.length === 0) {
+    toast('No lessons available yet — add some via Course Forge or the Content Editor.', 'warning');
+    return;
+  }
+  // Find first incomplete lesson or just first lesson
+  for (let mi = 0; mi < mods.length; mi++) {
+    const lessons = mods[mi]?.lessons || [];
+    for (let li = 0; li < lessons.length; li++) {
+      if (!lessons[li].completed) {
+        loadLesson(lessons[li].id, mi);
+        return;
+      }
+    }
+  }
+  // All complete — go to first
+  const firstLesson = mods[0]?.lessons?.[0];
   if (firstLesson) loadLesson(firstLesson.id, 0);
+  else toast('No lessons available yet.', 'warning');
 }
 
 // ============================================
@@ -2603,6 +2638,10 @@ function courseModalHTML(course = null) {
           <input type="checkbox" id="cFree" ${(!isEdit || course.is_free_for_org) ? 'checked' : ''} style="width:auto;" />
           <label for="cFree" class="form-label" style="margin:0;">Free for organisation members</label>
         </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:0.75rem;">
+          <input type="checkbox" id="cPublish" ${(isEdit && course.is_published) ? 'checked' : ''} style="width:auto;" />
+          <label for="cPublish" class="form-label" style="margin:0;">Publish immediately (visible to learners)</label>
+        </div>
         <div style="display:flex;gap:0.75rem;margin-top:1.5rem;">
           <button class="btn btn-primary" style="flex:1;" onclick="${isEdit ? `saveEditCourse('${course.id}')` : 'saveNewCourse()'}" id="cSaveBtn">
             ${isEdit ? 'Save Changes' : 'Create Course'}
@@ -2636,7 +2675,8 @@ async function saveNewCourse() {
     difficulty: document.getElementById('cDiff').value,
     estimated_hours: parseFloat(document.getElementById('cHours').value) || 1,
     language: document.getElementById('cLang').value,
-    is_free_for_org: document.getElementById('cFree').checked
+    is_free_for_org: document.getElementById('cFree').checked,
+    is_published: document.getElementById('cPublish')?.checked ? 1 : 0
   };
   if (!payload.title) { toast('Title is required', 'error'); btn.disabled=false; btn.textContent='Create Course'; return; }
   const data = await api('POST', '/courses', payload);
@@ -2660,7 +2700,8 @@ async function saveEditCourse(courseId) {
     difficulty: document.getElementById('cDiff').value,
     estimated_hours: parseFloat(document.getElementById('cHours').value) || 1,
     language: document.getElementById('cLang').value,
-    is_free_for_org: document.getElementById('cFree').checked ? 1 : 0
+    is_free_for_org: document.getElementById('cFree').checked ? 1 : 0,
+    is_published: document.getElementById('cPublish')?.checked ? 1 : 0
   };
   if (!payload.title) { toast('Title is required', 'error'); btn.disabled=false; btn.textContent='Save Changes'; return; }
   const data = await api('PUT', `/courses/${courseId}`, payload);
@@ -3255,7 +3296,11 @@ async function runForgeStep1() {
   });
 
   if (!data?.success) {
-    toast(data?.error || 'Generation failed. Please try again.', 'error');
+    const errMsg = data?.error || 'Generation failed.';
+    const isApiKey = errMsg.toLowerCase().includes('api') || errMsg.toLowerCase().includes('key') || errMsg.toLowerCase().includes('configured');
+    toast(isApiKey 
+      ? '🔑 AI key not configured — set DEEPSEEK_API_KEY in your Render environment variables' 
+      : errMsg, 'error', 6000);
     document.getElementById('forgePanel').innerHTML = renderForgeStep1();
     return;
   }
