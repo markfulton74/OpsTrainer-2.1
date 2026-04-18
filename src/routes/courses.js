@@ -27,18 +27,23 @@ router.get('/', requireAuth, (req, res) => {
 
     const publishedFilter = showAll ? '' : 'AND c.is_published = 1';
 
+    const { id: userId } = req.user;
     const courses = db.prepare(`
       SELECT c.*,
              u.full_name as created_by_name,
-             COUNT(DISTINCT e.id) as enrolment_count
+             COUNT(DISTINCT e.id) as enrolment_count,
+             ue.progress_pct,
+             ue.completed_at,
+             CASE WHEN ue.id IS NOT NULL THEN 1 ELSE 0 END as is_enrolled
       FROM courses c
       LEFT JOIN users u ON u.id = c.created_by
       LEFT JOIN enrolments e ON e.course_id = c.id AND e.org_id = ?
+      LEFT JOIN enrolments ue ON ue.course_id = c.id AND ue.learner_id = ?
       WHERE (c.org_id = ? OR c.is_platform_course = 1)
       ${publishedFilter}
       GROUP BY c.id
       ORDER BY c.is_platform_course DESC, c.created_at DESC
-    `).all(org_id, org_id);
+    `).all(org_id, userId, org_id);
 
     res.json({ success: true, courses });
   } catch (err) {
