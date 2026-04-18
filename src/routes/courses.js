@@ -38,7 +38,7 @@ router.get('/', requireAuth, (req, res) => {
       FROM courses c
       LEFT JOIN users u ON u.id = c.created_by
       LEFT JOIN enrolments e ON e.course_id = c.id AND e.org_id = ?
-      LEFT JOIN enrolments ue ON ue.course_id = c.id AND ue.learner_id = ?
+      LEFT JOIN enrolments ue ON ue.course_id = c.id AND ue.user_id = ?
       WHERE (c.org_id = ? OR c.is_platform_course = 1)
       ${publishedFilter}
       GROUP BY c.id
