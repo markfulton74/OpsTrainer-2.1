@@ -1586,11 +1586,14 @@ function renderSidebar() {
     <aside class="sidebar">
       <div class="sidebar-header">
         <div class="sidebar-logo">
-          <div class="sidebar-logo-icon">🌍</div>
-          <div>
+          <img src="/assets/branding/logo.png" alt="OpsTrainer"
+               onerror="this.style.display='none';document.getElementById('logoFallback').style.display='flex';"
+               style="height:36px;object-fit:contain;max-width:155px;" />
+          <div id="logoFallback" style="display:none;align-items:center;gap:10px;">
+            <div class="sidebar-logo-icon">🌍</div>
             <div class="sidebar-logo-text">OpsTrainer</div>
-            <div class="sidebar-org">${org?.name || ''}</div>
           </div>
+          <div class="sidebar-org">${org?.name || ''}</div>
         </div>
       </div>
 
@@ -1765,8 +1768,8 @@ async function loadLearnerDashboard() {
   const cl = document.getElementById('continueLearning');
   if (cl) {
     // Fetch full enrolment list
-    const enrolData = await api('GET', '/courses?enrolled=1');
-    const enrolCourses = (enrolData?.courses || []).filter(c => (c.progress_pct ?? 0) > 0 || c.is_enrolled);
+    const enrolData = await api('GET', '/courses');
+    const enrolCourses = (enrolData?.courses || []).filter(c => c.is_enrolled || (c.progress_pct ?? 0) > 0);
     if (enrolCourses.length > 0) {
       cl.innerHTML = `<div class="courses-grid">${enrolCourses.slice(0, 3).map(c => renderCourseCard(c)).join('')}</div>`;
     } else {
@@ -2125,7 +2128,10 @@ async function completeLesson(lessonId) {
       toast('🎉 Course complete! Issuing your certificate...', 'success', 5000);
       const certData = await api('POST', `/certificates/issue/${state.currentEnrolment.id}`);
       if (certData?.success) {
-        toast(`Certificate issued: ${certData.certificate.certificate_number}`, 'success', 6000);
+        const cert = certData.certificate;
+        toast(`🏅 Certificate issued! #${cert.certificate_number}`, 'success', 5000);
+        // Show certificate in modal
+        setTimeout(() => showCertificateModal(cert), 1200);
       }
     }
     state.currentEnrolment.progress_pct = data.progress_pct;
@@ -3677,6 +3683,47 @@ window.addEventListener('popstate', () => render());
 
 // Start
 boot();
+
+// ============================================
+// CERTIFICATE VIEWER
+// ============================================
+function showCertificateModal(cert) {
+  const existing = document.getElementById('certModal');
+  if (existing) existing.remove();
+  const modal = document.createElement('div');
+  modal.id = 'certModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;';
+  modal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;max-width:680px;width:100%;padding:48px 40px;text-align:center;position:relative;box-shadow:0 24px 64px rgba(0,0,0,0.3);">
+      <button onclick="document.getElementById('certModal').remove()" 
+              style="position:absolute;top:16px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#999;">✕</button>
+      <img src="/assets/branding/logo.png" alt="OpsTrainer" 
+           onerror="this.style.display='none'"
+           style="height:48px;object-fit:contain;margin-bottom:24px;" />
+      <div style="font-size:13px;letter-spacing:2px;text-transform:uppercase;color:#888;margin-bottom:8px;">Certificate of Completion</div>
+      <div style="font-size:15px;color:#555;margin-bottom:20px;">This is to certify that</div>
+      <div style="font-size:28px;font-weight:700;color:#1a1a2e;margin-bottom:8px;">${cert.learner_name || state.user?.full_name || 'Learner'}</div>
+      <div style="font-size:15px;color:#555;margin-bottom:20px;">has successfully completed</div>
+      <div style="font-size:20px;font-weight:600;color:#2563eb;margin-bottom:24px;padding:12px 24px;background:#eff6ff;border-radius:8px;display:inline-block;">${cert.course_title || state.currentCourse?.title || 'Course'}</div>
+      <div style="font-size:13px;color:#888;margin-bottom:24px;">
+        Issued: ${cert.issued_at ? new Date(cert.issued_at).toLocaleDateString('en-ZA', {day:'numeric',month:'long',year:'numeric'}) : new Date().toLocaleDateString('en-ZA', {day:'numeric',month:'long',year:'numeric'})}
+      </div>
+      <div style="font-size:11px;color:#aaa;letter-spacing:1px;border-top:1px solid #eee;padding-top:16px;margin-top:8px;">
+        VERIFICATION CODE: ${cert.certificate_number}
+      </div>
+      <div style="display:flex;gap:12px;justify-content:center;margin-top:24px;">
+        <button class="btn btn-primary" onclick="window.open('/api/certificates/${cert.id}/download','_blank')">
+          ⬇️ Download PDF
+        </button>
+        <button class="btn btn-outline" onclick="navigate('certificates')">
+          📋 View All Certificates
+        </button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+}
 </script>
 </body>
 </html>
