@@ -3224,20 +3224,20 @@ function renderForgeStep1() {
         <div class="form-group">
           <label class="form-label">Number of Modules</label>
           <select class="form-select" id="forgeModules">
-            <option value="3">3 modules</option>
-            <option value="4" selected>4 modules</option>
-            <option value="5">5 modules</option>
-            <option value="6">6 modules</option>
+            <option value="3" ${state.forgeModules === 3 ? 'selected' : ''}>3 modules</option>
+            <option value="4" ${(!state.forgeModules || state.forgeModules === 4) ? 'selected' : ''}>4 modules</option>
+            <option value="5" ${state.forgeModules === 5 ? 'selected' : ''}>5 modules</option>
+            <option value="6" ${state.forgeModules === 6 ? 'selected' : ''}>6 modules</option>
           </select>
         </div>
         <div class="form-group">
           <label class="form-label">Estimated Duration</label>
           <select class="form-select" id="forgeHours">
-            <option value="1">1 hour</option>
-            <option value="2" selected>2 hours</option>
-            <option value="3">3 hours</option>
-            <option value="4">4 hours</option>
-            <option value="8">8 hours (full day)</option>
+            <option value="1" ${state.forgeHours === 1 ? 'selected' : ''}>1 hour</option>
+            <option value="2" ${(!state.forgeHours || state.forgeHours === 2) ? 'selected' : ''}>2 hours</option>
+            <option value="3" ${state.forgeHours === 3 ? 'selected' : ''}>3 hours</option>
+            <option value="4" ${state.forgeHours === 4 ? 'selected' : ''}>4 hours</option>
+            <option value="8" ${state.forgeHours === 8 ? 'selected' : ''}>8 hours (full day)</option>
           </select>
         </div>
       </div>
@@ -3258,23 +3258,47 @@ function renderForgeStep1() {
 }
 
 function addOutcome() {
-  const inputs = document.querySelectorAll('[id^="outcome"]');
+  // Save all current field values before re-rendering
+  const topic = document.getElementById('forgeTopic')?.value;
+  const audience = document.getElementById('forgeAudience')?.value;
+  const doctrine = document.getElementById('forgeDoctrine')?.value;
+  const modules = document.getElementById('forgeModules')?.value;
+  const hours = document.getElementById('forgeHours')?.value;
+  if (topic !== undefined) state.forgeTopic = topic;
+  if (audience !== undefined) state.forgeAudience = audience;
+  if (doctrine !== undefined) state.forgeDoctrine = doctrine;
+  if (modules !== undefined) state.forgeModules = parseInt(modules);
+  if (hours !== undefined) state.forgeHours = parseFloat(hours);
+
+  const inputs = document.querySelectorAll('input[id^="outcome"]');
   state.forgeOutcomes = Array.from(inputs).map(el => el.value);
   state.forgeOutcomes.push('');
   document.getElementById('forgePanel').innerHTML = renderForgeStep1();
 }
 
 function removeOutcome(index) {
-  const inputs = document.querySelectorAll('[id^="outcome"]');
+  const topic = document.getElementById('forgeTopic')?.value;
+  const audience = document.getElementById('forgeAudience')?.value;
+  const doctrine = document.getElementById('forgeDoctrine')?.value;
+  const modules = document.getElementById('forgeModules')?.value;
+  const hours = document.getElementById('forgeHours')?.value;
+  if (topic !== undefined) state.forgeTopic = topic;
+  if (audience !== undefined) state.forgeAudience = audience;
+  if (doctrine !== undefined) state.forgeDoctrine = doctrine;
+  if (modules !== undefined) state.forgeModules = parseInt(modules);
+  if (hours !== undefined) state.forgeHours = parseFloat(hours);
+
+  const inputs = document.querySelectorAll('input[id^="outcome"]');
   state.forgeOutcomes = Array.from(inputs).map(el => el.value);
   state.forgeOutcomes.splice(index, 1);
+  if (state.forgeOutcomes.length === 0) state.forgeOutcomes = [''];
   document.getElementById('forgePanel').innerHTML = renderForgeStep1();
 }
 
 async function runForgeStep1() {
   const topic = document.getElementById('forgeTopic')?.value.trim();
   const audience = document.getElementById('forgeAudience')?.value.trim();
-  const outcomes = Array.from(document.querySelectorAll('[id^="outcome"]')).map(el => el.value.trim()).filter(Boolean);
+  const outcomes = Array.from(document.querySelectorAll('input[id^="outcome"]')).map(el => el.value.trim()).filter(Boolean);
   const num_modules = parseInt(document.getElementById('forgeModules')?.value || '4');
   const estimated_hours = parseFloat(document.getElementById('forgeHours')?.value || '2');
   const doctrine_text = document.getElementById('forgeDoctrine')?.value.trim();
