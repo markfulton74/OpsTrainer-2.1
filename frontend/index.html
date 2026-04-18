@@ -1372,7 +1372,9 @@ async function api(method, path, body = null, retry = true) {
   if (res.status === 401 && retry) {
     const refreshed = await tryRefresh();
     if (refreshed) return api(method, path, body, false);
-    logout();
+    // Don't silently logout — warn the user instead
+    toast('⏰ Your session has expired. Please sign in again.', 'error', 5000);
+    setTimeout(() => logout(), 2000);
     return null;
   }
 
@@ -3277,9 +3279,9 @@ async function runForgeStep1() {
   const estimated_hours = parseFloat(document.getElementById('forgeHours')?.value || '2');
   const doctrine_text = document.getElementById('forgeDoctrine')?.value.trim();
 
-  if (!topic || !audience || outcomes.length === 0) {
-    return toast('Topic, audience, and at least one outcome are required', 'error');
-  }
+  if (!topic) return toast('Please enter a course topic', 'error');
+  if (!audience) return toast('Please enter a target audience', 'error');
+  if (outcomes.length === 0) return toast('Please add at least one learning outcome', 'error');
 
   state.forgeTopic = topic;
   state.forgeAudience = audience;
@@ -3287,13 +3289,26 @@ async function runForgeStep1() {
   state.forgeDoctrine = doctrine_text;
 
   document.getElementById('forgePanel').innerHTML = `
-    <div class="forge-panel generating-overlay">
-      <div class="spinner"></div>
-      <div style="font-size:18px;font-weight:700;color:var(--gray-900);margin-bottom:8px;">Designing your course...</div>
-      <div class="text-muted">AI is structuring modules, lessons and competency mappings.</div>
-      <div class="text-sm text-muted mt-3">This takes about 10-20 seconds ☕</div>
+    <div class="forge-panel" style="text-align:center;padding:60px 24px;">
+      <div style="font-size:48px;margin-bottom:16px;animation:spin 2s linear infinite;display:inline-block;">🔥</div>
+      <div style="font-size:20px;font-weight:700;color:var(--gray-900);margin-bottom:8px;">Building your course structure...</div>
+      <div style="color:var(--gray-500);margin-bottom:4px;">AI is designing modules, lessons, and competency maps.</div>
+      <div style="font-size:13px;color:var(--gray-400);margin-top:12px;">This takes 15–30 seconds ☕ — please wait</div>
+      <div style="margin-top:24px;">
+        <div style="background:var(--gray-100);border-radius:8px;height:6px;overflow:hidden;">
+          <div id="forgeProgress" style="background:var(--primary);height:6px;width:5%;border-radius:8px;transition:width 0.5s;"></div>
+        </div>
+      </div>
     </div>
   `;
+  // Animate progress bar
+  let pct = 5;
+  const progressTimer = setInterval(() => {
+    pct = Math.min(pct + (Math.random() * 8), 90);
+    const bar = document.getElementById('forgeProgress');
+    if (bar) bar.style.width = pct + '%';
+    else clearInterval(progressTimer);
+  }, 800);
 
   const data = await api('POST', '/forge/generate-structure', {
     topic, audience, outcomes, num_modules, estimated_hours,
@@ -3303,6 +3318,7 @@ async function runForgeStep1() {
 
   if (!data?.success) {
     const errMsg = data?.error || 'Generation failed.';
+    clearInterval(progressTimer);
     const isApiKey = errMsg.toLowerCase().includes('api') || errMsg.toLowerCase().includes('key') || errMsg.toLowerCase().includes('configured');
     toast(isApiKey 
       ? '🔑 AI key not configured — set DEEPSEEK_API_KEY in your Render environment variables' 
@@ -3311,6 +3327,7 @@ async function runForgeStep1() {
     return;
   }
 
+  clearInterval(progressTimer);
   state.forgeJobId = data.job_id;
   state.forgeStructure = data.structure;
   state.forgeStep = 2;
