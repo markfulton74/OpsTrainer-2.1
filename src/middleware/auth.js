@@ -71,7 +71,7 @@ function generateTokens(userId, orgId, role) {
   const accessToken = jwt.sign(
     { userId, orgId, role },
     JWT_SECRET,
-    { expiresIn: '15m' }
+    { expiresIn: '8h' }
   );
   const refreshToken = jwt.sign(
     { userId, orgId, role },
