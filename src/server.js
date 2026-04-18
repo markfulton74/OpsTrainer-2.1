@@ -106,6 +106,14 @@ app.get('/api/health', (req, res) => {
 });
 
 // ============================================
+// Static Assets (logo, cert templates, etc.)
+// ============================================
+const assetsDir = path.join(__dirname, '..', 'assets');
+if (fs.existsSync(assetsDir)) {
+  app.use('/assets', express.static(assetsDir));
+}
+
+// ============================================
 // Static Frontend
 // ============================================
 const publicDir = path.join(__dirname, '..', 'frontend');
