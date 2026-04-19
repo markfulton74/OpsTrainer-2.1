@@ -1563,7 +1563,8 @@ async function doLogin() {
   Auth.setTokens(data.accessToken, data.refreshToken);
   state.user = data.user;
   state.org = data.org;
-  navigate('dashboard');
+  // Learners go straight to course browser
+  navigate(data.user?.role === 'learner' ? 'courses' : 'dashboard');
 }
 
 async function doRegister() {
