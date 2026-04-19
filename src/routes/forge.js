@@ -45,10 +45,10 @@ router.post('/generate-structure', requireAdmin, async (req, res) => {
     const jobId = uuidv4();
     db.prepare(`
       INSERT INTO forge_jobs (id, org_id, created_by, status, topic, audience, outcomes,
-        doctrine_text, num_modules, estimated_hours, language, started_at)
-      VALUES (?, ?, ?, 'generating', ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        doctrine_text, num_modules, estimated_hours, language)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      jobId, org_id, userId, topic, audience,
+      jobId, org_id, userId, 'generating', topic, audience,
       JSON.stringify(outcomes), doctrine_text || null,
       num_modules, estimated_hours, language
     );
@@ -196,7 +196,7 @@ For regular lessons: create 2 MCQ questions and 1 open-ended question.`;
     const raw = await callAI(systemPrompt, userMessage, { json_mode: true, temperature: 0.7, max_tokens: 6000 });
     const moduleContent = JSON.parse(raw);
 
-    res.json({ success: true, module_index, content: moduleContent });
+    res.json({ success: true, module_index, module: moduleContent, content: moduleContent });
   } catch (err) {
     console.error('Forge generate-module error:', err);
     res.status(500).json({ success: false, error: `Module generation failed: ${err.message}` });
