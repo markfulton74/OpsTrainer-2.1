@@ -1591,6 +1591,32 @@ async function doRegister() {
   navigate('dashboard');
 }
 
+async function doRegisterIndividual() {
+  const name = document.getElementById('regIndName')?.value?.trim();
+  const email = document.getElementById('regIndEmail')?.value?.trim();
+  const password = document.getElementById('regIndPassword')?.value;
+  if (!name || !email || !password) return toast('Please fill in all fields', 'error');
+  const btn = document.getElementById('registerIndBtn');
+  btn.disabled = true; btn.textContent = 'Creating account...';
+  try {
+    const data = await api('POST', '/auth/register-individual', { full_name: name, email, password });
+    if (!data?.success) {
+      toast(data?.error || 'Registration failed', 'error');
+      btn.disabled = false; btn.textContent = 'Create Account';
+      return;
+    }
+    Auth.setTokens(data.accessToken, data.refreshToken);
+    state.user = data.user;
+    state.org = data.org;
+    toast('Welcome to OpsTrainer! 🎉', 'success');
+    navigate('courses');
+  } catch(e) {
+    toast('Registration failed. Please try again.', 'error');
+    btn.disabled = false; btn.textContent = 'Create Account';
+  }
+}
+
+
 // ---- SIDEBAR ----
 function renderSidebar() {
   const { user, org } = state;
