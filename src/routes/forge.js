@@ -255,11 +255,11 @@ router.post('/publish', requireAdmin, async (req, res) => {
     `);
     const insertLesson = db.prepare(`
       INSERT INTO lessons (id, module_id, title, content_html, content_type, display_order, estimated_minutes, ai_generated)
-      VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
     const insertQuestion = db.prepare(`
       INSERT INTO questions (id, course_id, lesson_id, question_text, question_type, options, correct_answer, explanation, difficulty, ai_generated)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     const publishAll = db.transaction(() => {
@@ -278,7 +278,8 @@ router.post('/publish', requireAdmin, async (req, res) => {
               lesson.content_html || '',
               lesson.content_type || 'lesson',
               li + 1,
-              lesson.estimated_minutes || 15
+              lesson.estimated_minutes || 15,
+              1
             );
 
             if (lesson.questions && Array.isArray(lesson.questions)) {
@@ -290,7 +291,8 @@ router.post('/publish', requireAdmin, async (req, res) => {
                   q.options ? JSON.stringify(q.options) : null,
                   q.correct_answer || null,
                   q.explanation || null,
-                  q.difficulty || 'medium'
+                  q.difficulty || 'medium',
+                  1
                 );
               }
             }
