@@ -52,16 +52,16 @@ router.post('/register-org', async (req, res) => {
     const trialEnds = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(); // 14 day trial
     db.prepare(`
       INSERT INTO organisations (id, name, slug, country, subscription_tier, subscription_status, trial_ends_at, max_users)
-      VALUES (?, ?, ?, ?, 'trial', 'trialing', ?, 10)
-    `).run(orgId, org_name.trim(), slug, country || null, trialEnds);
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(orgId, org_name.trim(), slug, country || null, 'trial', 'trialing', trialEnds, 10);
 
     // Create admin user
     const userId = uuidv4();
     const passwordHash = await bcrypt.hash(password, 12);
     db.prepare(`
       INSERT INTO users (id, org_id, email, password_hash, full_name, role, email_verified)
-      VALUES (?, ?, ?, ?, ?, 'org_admin', 1)
-    `).run(userId, orgId, email.toLowerCase().trim(), passwordHash, full_name.trim());
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(userId, orgId, email.toLowerCase().trim(), passwordHash, full_name.trim(), 'org_admin', 1);
 
     const { accessToken, refreshToken } = generateTokens(userId, orgId, 'org_admin');
 
