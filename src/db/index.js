@@ -1,26 +1,25 @@
 // ============================================
-// OpsTrainer 2.1 — Shared DB Instance
+// OpsTrainer 2.1 — DB Selector
+// Uses JSON file store on free Render tier.
+// Swap this file for SQLite when persistent disk is available.
 // ============================================
-const Database = require('better-sqlite3');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
-
-const DB_PATH = process.env.DB_PATH || './data/opstrainer.db';
-
-// Ensure data dir exists
-const dir = path.dirname(DB_PATH);
-if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+const USE_SQLITE = process.env.USE_SQLITE === 'true';
 
 let db;
-try {
+if (USE_SQLITE) {
+  const Database = require('better-sqlite3');
+  const fs = require('fs');
+  const path = require('path');
+  const DB_PATH = process.env.DB_PATH || './data/opstrainer.db';
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
   db = new Database(DB_PATH);
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
   console.log('✅ SQLite connected:', DB_PATH);
-} catch (err) {
-  console.error('❌ Database connection failed:', err.message);
-  process.exit(1);
+} else {
+  db = require('./jsondb');
+  console.log('✅ JSON DB adapter active');
 }
 
 module.exports = db;
