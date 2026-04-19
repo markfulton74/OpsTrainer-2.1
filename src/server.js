@@ -45,6 +45,7 @@ const authLimiter = rateLimit({
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register-org', authLimiter);
+app.use('/api/auth/register-individual', authLimiter);
 
 // Request logging
 app.use((req, res, next) => {
