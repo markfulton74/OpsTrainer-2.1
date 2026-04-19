@@ -87,6 +87,53 @@ router.post('/register-org', async (req, res) => {
   }
 });
 
+
+// ============================================
+// POST /api/auth/register-individual
+// Creates a personal account (auto org)
+// ============================================
+router.post('/register-individual', async (req, res) => {
+  try {
+    const { full_name, email, password } = req.body;
+    if (!full_name || !email || !password) {
+      return res.status(400).json({ success: false, error: 'full_name, email and password are required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    }
+
+    const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email.toLowerCase().trim());
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'An account with this email already exists' });
+    }
+
+    // Auto-create a personal org
+    const orgId = uuidv4();
+    const slug = 'individual-' + orgId.substring(0, 8);
+    db.prepare(`INSERT INTO organisations (id, name, slug, country, subscription_tier, subscription_status, max_users)
+      VALUES (?, ?, ?, ?, ?, ?, ?)`)
+      .run(orgId, full_name.trim() + " (Individual)", slug, null, 'individual', 'active', 1);
+
+    const userId = uuidv4();
+    const passwordHash = await bcrypt.hash(password, 12);
+    db.prepare(`INSERT INTO users (id, org_id, email, password_hash, full_name, role, email_verified, is_active)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+      .run(userId, orgId, email.toLowerCase().trim(), passwordHash, full_name.trim(), 'learner', 1, 1);
+
+    const { accessToken, refreshToken } = generateTokens(userId, orgId, 'learner');
+
+    console.log(\`✅ Individual registered: \${email}\`);
+    res.status(201).json({
+      success: true, accessToken, refreshToken,
+      user: { id: userId, email: email.toLowerCase().trim(), full_name: full_name.trim(), role: 'learner' },
+      org: { id: orgId, name: full_name.trim() + " (Individual)", slug, subscription_tier: 'individual' }
+    });
+  } catch (err) {
+    console.error('Register-individual error:', err);
+    res.status(500).json({ success: false, error: 'Registration failed' });
+  }
+});
+
 // ============================================
 // POST /api/auth/login
 // ============================================
