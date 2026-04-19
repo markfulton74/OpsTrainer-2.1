@@ -97,13 +97,18 @@ router.post('/login', async (req, res) => {
       return res.status(400).json({ success: false, error: 'Email and password required' });
     }
 
-    const user = db.prepare(`
-      SELECT u.*, o.name as org_name, o.slug as org_slug,
-             o.subscription_tier, o.subscription_status, o.max_users
-      FROM users u
-      JOIN organisations o ON o.id = u.org_id
-      WHERE u.email = ? AND u.is_active = 1
-    `).get(email.toLowerCase().trim());
+    const user = db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1')
+      .get(email.toLowerCase().trim());
+    if (user) {
+      const org = db.prepare('SELECT * FROM organisations WHERE id = ?').get(user.org_id);
+      if (org) {
+        user.org_name = org.name;
+        user.org_slug = org.slug;
+        user.subscription_tier = org.subscription_tier;
+        user.subscription_status = org.subscription_status;
+        user.max_users = org.max_users;
+      }
+    }
 
     if (!user) {
       return res.status(401).json({ success: false, error: 'Invalid email or password' });
