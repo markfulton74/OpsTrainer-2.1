@@ -1645,7 +1645,7 @@ function renderSidebar() {
           <div class="user-avatar">${initials}</div>
           <div class="user-info">
             <div class="user-name">${user?.full_name || 'User'}</div>
-            <div class="user-role">${user?.role?.replace('_', ' ') || ''}</div>
+            <div class="user-role">${user?.role === 'learner' ? 'Individual Learner' : user?.role?.replace('_', ' ') || ''}</div>
           </div>
           <span style="color:var(--gray-500);font-size:12px;">⚙️</span>
         </div>
