@@ -220,9 +220,9 @@ router.post('/:id/enrol', requireAuth, (req, res) => {
 
     const id = uuidv4();
     db.prepare(`
-      INSERT INTO enrolments (id, user_id, course_id, org_id, status, started_at)
-      VALUES (?, ?, ?, ?, 'enrolled', CURRENT_TIMESTAMP)
-    `).run(id, userId, req.params.id, org_id);
+      INSERT INTO enrolments (id, user_id, course_id, org_id, status, enrolled_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(id, userId, req.params.id, org_id, 'enrolled', new Date().toISOString());
 
     const enrolment = db.prepare('SELECT * FROM enrolments WHERE id = ?').get(id);
     res.status(201).json({ success: true, enrolment });
