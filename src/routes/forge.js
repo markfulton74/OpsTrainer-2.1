@@ -234,12 +234,13 @@ router.post('/publish', requireAdmin, async (req, res) => {
         estimated_hours, language, is_published, is_free_for_org,
         forge_generated, forge_topic, forge_audience, forge_outcomes, forge_doctrine,
         created_by
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, 1, 1, ?, ?, ?, ?, ?)
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       courseId, org_id,
       course_data.title, slug, course_data.description || null,
       course_data.category || null, course_data.difficulty || 'intermediate',
       course_data.estimated_hours || 2.0, course_data.language || 'en',
+      1, 1, 1,
       job?.topic || course_data.title,
       job?.audience || null,
       job?.outcomes || null,
