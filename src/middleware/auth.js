@@ -24,13 +24,15 @@ function requireAuth(req, res, next) {
   }
 
   // Fetch user from DB on each request (ensures revoked users are blocked)
-  const user = db.prepare(`
-    SELECT u.id, u.email, u.full_name, u.role, u.org_id, u.is_active,
-           o.name as org_name, o.subscription_tier, o.subscription_status
-    FROM users u
-    JOIN organisations o ON o.id = u.org_id
-    WHERE u.id = ? AND u.is_active = 1
-  `).get(decoded.userId);
+  let user = db.prepare('SELECT * FROM users WHERE id = ? AND is_active = 1').get(decoded.userId);
+  if (user) {
+    const org = db.prepare('SELECT * FROM organisations WHERE id = ?').get(user.org_id);
+    if (org) {
+      user.org_name = org.name;
+      user.subscription_tier = org.subscription_tier;
+      user.subscription_status = org.subscription_status;
+    }
+  }
 
   if (!user) {
     return res.status(401).json({ success: false, error: 'User not found or deactivated' });
