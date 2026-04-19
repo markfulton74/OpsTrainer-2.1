@@ -28,22 +28,33 @@ router.get('/', requireAuth, (req, res) => {
     const publishedFilter = showAll ? '' : 'AND c.is_published = 1';
 
     const { id: userId } = req.user;
-    const courses = db.prepare(`
-      SELECT c.*,
-             u.full_name as created_by_name,
-             COUNT(DISTINCT e.id) as enrolment_count,
-             ue.progress_pct,
-             ue.completed_at,
-             CASE WHEN ue.id IS NOT NULL THEN 1 ELSE 0 END as is_enrolled
-      FROM courses c
-      LEFT JOIN users u ON u.id = c.created_by
-      LEFT JOIN enrolments e ON e.course_id = c.id AND e.org_id = ?
-      LEFT JOIN enrolments ue ON ue.course_id = c.id AND ue.user_id = ?
-      WHERE (c.org_id = ? OR c.is_platform_course = 1)
-      ${publishedFilter}
-      GROUP BY c.id
-      ORDER BY c.is_platform_course DESC, c.created_at DESC
-    `).all(org_id, userId, org_id);
+    // Fetch courses without complex JOINs (JSON DB compat)
+    const allCourses = db.prepare('SELECT * FROM courses').all();
+    const enrolments = db.prepare('SELECT * FROM enrolments WHERE org_id = ?').all(org_id);
+    const userEnrolments = db.prepare('SELECT * FROM enrolments WHERE user_id = ?').all(userId);
+    const users = db.prepare('SELECT id, full_name FROM users').all();
+
+    const courses = allCourses
+      .filter(c => {
+        if (c.org_id !== org_id && !c.is_platform_course) return false;
+        if (!showAll && !c.is_published) return false;
+        return true;
+      })
+      .map(c => {
+        const creator = users.find(u => u.id === c.created_by);
+        const myEnrol = userEnrolments.find(e => e.course_id === c.id);
+        const orgEnrolCount = enrolments.filter(e => e.course_id === c.id).length;
+        return {
+          ...c,
+          created_by_name: creator ? creator.full_name : null,
+          enrolment_count: orgEnrolCount,
+          progress_pct: myEnrol ? myEnrol.progress_pct : 0,
+          completed_at: myEnrol ? myEnrol.completed_at : null,
+          is_enrolled: myEnrol ? 1 : 0,
+        };
+      })
+      .sort((a, b) => (b.is_platform_course || 0) - (a.is_platform_course || 0) ||
+                      new Date(b.created_at||0) - new Date(a.created_at||0));
 
     res.json({ success: true, courses });
   } catch (err) {
@@ -63,26 +74,30 @@ router.get('/:id', requireAuth, (req, res) => {
     const isAdmin = ['org_admin', 'superadmin', 'manager'].includes(role);
     const publishedClause = isAdmin ? '' : 'AND c.is_published = 1';
 
-    const course = db.prepare(`
-      SELECT c.*, u.full_name as created_by_name
-      FROM courses c
-      LEFT JOIN users u ON u.id = c.created_by
-      WHERE c.id = ? AND (c.org_id = ? OR c.is_platform_course = 1) ${publishedClause}
-    `).get(req.params.id, org_id);
+    const course = db.prepare('SELECT * FROM courses WHERE id = ?').get(req.params.id);
+    if (course) {
+      if (course.org_id !== org_id && !course.is_platform_course) {
+        return res.status(404).json({ success: false, error: 'Course not found' });
+      }
+      if (!isAdmin && !course.is_published) {
+        return res.status(404).json({ success: false, error: 'Course not found' });
+      }
+      const creator = db.prepare('SELECT full_name FROM users WHERE id = ?').get(course.created_by);
+      course.created_by_name = creator ? creator.full_name : null;
+    }
 
     if (!course) {
       return res.status(404).json({ success: false, error: 'Course not found' });
     }
 
     // Modules + lessons
-    const modules = db.prepare(`
-      SELECT m.*, COUNT(l.id) as lesson_count
-      FROM modules m
-      LEFT JOIN lessons l ON l.module_id = m.id
-      WHERE m.course_id = ?
-      GROUP BY m.id
-      ORDER BY m.display_order
-    `).all(course.id);
+    const modules = db.prepare('SELECT * FROM modules WHERE course_id = ? ORDER BY display_order').all(course.id);
+    for (const mod of modules) {
+      const lessonCount = db.prepare('SELECT * FROM lessons WHERE module_id = ?').all(mod.id).length;
+      mod.lesson_count = lessonCount;
+    }
+    // dummy var to avoid re-declaration below
+    const _modulesDone = true;
 
     for (const mod of modules) {
       mod.lessons = db.prepare(`
@@ -96,15 +111,16 @@ router.get('/:id', requireAuth, (req, res) => {
       'SELECT * FROM enrolments WHERE user_id = ? AND course_id = ?'
     ).get(userId, course.id);
 
-    // Competencies
-    const competencies = db.prepare(`
-      SELECT co.id, co.code, co.name, co.level, ca.name as area_name, cd.name as domain_name
-      FROM course_competencies cc
-      JOIN competencies co ON co.id = cc.competency_id
-      JOIN competency_areas ca ON ca.id = co.area_id
-      JOIN competency_domains cd ON cd.id = ca.domain_id
-      WHERE cc.course_id = ?
-    `).all(course.id);
+    // Competencies (simplified for JSON DB compat)
+    const ccLinks = db.prepare('SELECT * FROM course_competencies WHERE course_id = ?').all(course.id);
+    const competencies = ccLinks.map(cc => {
+      const co = db.prepare('SELECT * FROM competencies WHERE id = ?').get(cc.competency_id);
+      if (!co) return null;
+      const ca = db.prepare('SELECT * FROM competency_areas WHERE id = ?').get(co.area_id);
+      const cd = ca ? db.prepare('SELECT * FROM competency_domains WHERE id = ?').get(ca.domain_id) : null;
+      return { id: co.id, code: co.code, name: co.name, level: co.level,
+               area_name: ca ? ca.name : null, domain_name: cd ? cd.name : null };
+    }).filter(Boolean);
 
     res.json({ success: true, course, modules, enrolment, competencies });
   } catch (err) {
@@ -242,17 +258,20 @@ router.post('/:id/lessons/:lessonId/complete', requireAuth, (req, res) => {
     }
 
     // Recalculate progress
-    const totalLessons = db.prepare(`
-      SELECT COUNT(*) as count FROM lessons l
-      JOIN modules m ON m.id = l.module_id WHERE m.course_id = ?
-    `).get(req.params.id).count;
+    const courseMods = db.prepare('SELECT id FROM modules WHERE course_id = ?').all(req.params.id);
+    let totalLessons = 0;
+    for (const m of courseMods) {
+      totalLessons += db.prepare('SELECT * FROM lessons WHERE module_id = ?').all(m.id).length;
+    }
 
-    const completedLessons = db.prepare(`
-      SELECT COUNT(*) as count FROM lesson_completions lc
-      JOIN lessons l ON l.id = lc.lesson_id
-      JOIN modules m ON m.id = l.module_id
-      WHERE lc.user_id = ? AND m.course_id = ?
-    `).get(userId, req.params.id).count;
+    const allCompletions = db.prepare('SELECT * FROM lesson_completions WHERE user_id = ?').all(userId);
+    const courseModIds = courseMods.map(m => m.id);
+    const courseAllLessons = [];
+    for (const mid of courseModIds) {
+      const ls = db.prepare('SELECT id FROM lessons WHERE module_id = ?').all(mid);
+      courseAllLessons.push(...ls.map(l => l.id));
+    }
+    const completedLessons = allCompletions.filter(lc => courseAllLessons.includes(lc.lesson_id)).length;
 
     const progressPct = totalLessons > 0 ? Math.round((completedLessons / totalLessons) * 100) : 0;
     const status = progressPct >= 100 ? 'completed' : 'in_progress';
