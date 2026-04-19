@@ -59,27 +59,39 @@ app.use((req, res, next) => {
 });
 
 // ============================================
-// Ensure DB is migrated + seeded on startup
+// Database init + auto-seed on startup
 // ============================================
 try {
-  // Ensure data dir exists
   const dataDir = path.join(__dirname, '..', 'data');
   if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
 
   const db = require('./db');
-  const schemaPath = path.join(__dirname, 'db', 'schema.sql');
-  if (fs.existsSync(schemaPath)) {
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    db.exec(schema);
-    console.log('✅ Database schema verified');
+
+  // For SQLite: run schema
+  if (process.env.USE_SQLITE === 'true') {
+    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      db.exec(schema);
+      console.log('✅ SQLite schema applied');
+    }
+  } else {
+    // JSON DB: ensure all tables exist via exec (reads CREATE TABLE names)
+    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+    if (fs.existsSync(schemaPath)) {
+      const schema = fs.readFileSync(schemaPath, 'utf8');
+      db.exec(schema);
+    }
   }
 
-  // Auto-seed if database is empty (first boot)
+  // Auto-seed if no orgs exist
   const orgCount = db.prepare('SELECT COUNT(*) as count FROM organisations').get();
-  if (orgCount.count === 0) {
-    console.log('🌱 Fresh database detected — auto-seeding...');
+  if (!orgCount || orgCount.count === 0) {
+    console.log('🌱 Fresh database — auto-seeding...');
     require('./db/seed')();
-    console.log('✅ Database seeded successfully');
+    console.log('✅ Seeded successfully');
+  } else {
+    console.log(`✅ Database ready (${orgCount.count} org(s))`);
   }
 } catch (err) {
   console.error('❌ Database init failed:', err.message);
