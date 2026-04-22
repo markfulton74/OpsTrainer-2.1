@@ -315,3 +315,22 @@ CREATE INDEX IF NOT EXISTS idx_cbir_org ON cbir_sessions(org_id);
 CREATE INDEX IF NOT EXISTS idx_certificates_user ON certificates(user_id);
 CREATE INDEX IF NOT EXISTS idx_certificates_number ON certificates(certificate_number);
 CREATE INDEX IF NOT EXISTS idx_forge_jobs_org ON forge_jobs(org_id);
+
+-- ============================================
+-- INVITES (org user invite codes)
+-- ============================================
+CREATE TABLE IF NOT EXISTS invites (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  org_id TEXT NOT NULL REFERENCES organisations(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  full_name TEXT NOT NULL,
+  role TEXT CHECK(role IN ('learner','manager','org_admin')) DEFAULT 'learner',
+  invite_code TEXT UNIQUE NOT NULL,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME,
+  created_by TEXT NOT NULL REFERENCES users(id),
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(invite_code);
+CREATE INDEX IF NOT EXISTS idx_invites_org ON invites(org_id);
