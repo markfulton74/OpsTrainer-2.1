@@ -1,11 +1,5 @@
 // ============================================
 // OpsTrainer 2.1 — Organisation Routes
-// GET  /api/org/me              — org details
-// GET  /api/org/users           — list users
-// POST /api/org/users/invite    — invite user
-// PUT  /api/org/users/:id       — update user role/status
-// DELETE /api/org/users/:id     — remove user
-// GET  /api/org/dashboard       — org admin dashboard stats
 // ============================================
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -22,7 +16,6 @@ router.get('/me', requireAuth, (req, res) => {
   try {
     const org = db.prepare('SELECT * FROM organisations WHERE id = ?').get(req.user.org_id);
     if (!org) return res.status(404).json({ success: false, error: 'Organisation not found' });
-    // Strip sensitive fields
     delete org.stripe_customer_id;
     delete org.stripe_subscription_id;
     res.json({ success: true, org });
@@ -38,13 +31,10 @@ router.get('/me', requireAuth, (req, res) => {
 router.get('/users', requireAdmin, (req, res) => {
   try {
     const { org_id } = req.user;
-    const users = db.prepare(`
-      SELECT id, email, full_name, role, is_active, last_login_at, created_at
-      FROM users WHERE org_id = ? ORDER BY full_name
-    `).all(org_id);
-
+    const users = db.prepare(
+      'SELECT id, email, full_name, role, is_active, last_login_at, created_at FROM users WHERE org_id = ? ORDER BY full_name'
+    ).all(org_id);
     const maxUsers = db.prepare('SELECT max_users FROM organisations WHERE id = ?').get(org_id)?.max_users || 10;
-
     res.json({ success: true, users, count: users.length, max_users: maxUsers });
   } catch (err) {
     console.error('List users error:', err);
@@ -53,55 +43,100 @@ router.get('/users', requireAdmin, (req, res) => {
 });
 
 // ============================================
-// POST /api/org/users/invite
-// Adds a learner to the org (simplified invite — no email flow yet)
+// GET /api/org/invites
+// List pending invites for this org
 // ============================================
-router.post('/users/invite', requireAdmin, async (req, res) => {
+router.get('/invites', requireAdmin, (req, res) => {
   try {
     const { org_id } = req.user;
-    const { email, full_name, role = 'learner', temp_password } = req.body;
+    const invites = db.prepare(
+      'SELECT id, email, full_name, role, invite_code, expires_at, used_at, created_at FROM invites WHERE org_id = ? ORDER BY created_at DESC'
+    ).all(org_id);
+    res.json({ success: true, invites });
+  } catch (err) {
+    console.error('List invites error:', err);
+    res.status(500).json({ success: false, error: 'Failed to fetch invites' });
+  }
+});
+
+// ============================================
+// POST /api/org/invite
+// Generate invite code for a new org user
+// ============================================
+router.post('/invite', requireAdmin, (req, res) => {
+  try {
+    const { org_id, id: adminId } = req.user;
+    const { email, full_name, role = 'learner' } = req.body;
 
     if (!email || !full_name) {
-      return res.status(400).json({ success: false, error: 'email and full_name required' });
+      return res.status(400).json({ success: false, error: 'email and full_name are required' });
+    }
+
+    if (!['learner', 'manager', 'org_admin'].includes(role)) {
+      return res.status(400).json({ success: false, error: 'Invalid role' });
     }
 
     // Check seat limit
     const org = db.prepare('SELECT max_users FROM organisations WHERE id = ?').get(org_id);
     const currentCount = db.prepare('SELECT COUNT(*) as count FROM users WHERE org_id = ? AND is_active = 1').get(org_id).count;
     if (currentCount >= org.max_users) {
-      return res.status(400).json({ success: false, error: `User limit reached (${org.max_users}). Upgrade your plan to add more users.` });
+      return res.status(400).json({ success: false, error: 'User limit reached. Upgrade your plan to add more users.' });
     }
 
-    const existingInOrg = db.prepare('SELECT id FROM users WHERE org_id = ? AND email = ?').get(org_id, email.toLowerCase().trim());
-    if (existingInOrg) {
-      return res.status(400).json({ success: false, error: 'User with this email already exists in your organisation' });
+    // Check not already a user in this org
+    const existing = db.prepare('SELECT id FROM users WHERE org_id = ? AND email = ?').get(org_id, email.toLowerCase().trim());
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'A user with this email already exists in your organisation' });
     }
 
-    const password = temp_password || Math.random().toString(36).slice(-10) + 'A1!';
-    const passwordHash = await bcrypt.hash(password, 12);
-    const userId = uuidv4();
+    // Cancel any existing unused invite for this email in this org
+    db.prepare('DELETE FROM invites WHERE org_id = ? AND email = ? AND used_at IS NULL').run(org_id, email.toLowerCase().trim());
 
-    db.prepare(`
-      INSERT INTO users (id, org_id, email, password_hash, full_name, role, email_verified)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
-    `).run(userId, org_id, email.toLowerCase().trim(), passwordHash, full_name.trim(), role);
+    // Generate invite code: OPS-XXXXXX (6 uppercase alphanumeric chars)
+    const code = 'OPS-' + Math.random().toString(36).substring(2, 8).toUpperCase();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    const inviteId = uuidv4();
 
-    const user = db.prepare('SELECT id, email, full_name, role, created_at FROM users WHERE id = ?').get(userId);
+    db.prepare(
+      'INSERT INTO invites (id, org_id, email, full_name, role, invite_code, expires_at, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(inviteId, org_id, email.toLowerCase().trim(), full_name.trim(), role, code, expiresAt, adminId);
+
+    const org_details = db.prepare('SELECT name FROM organisations WHERE id = ?').get(org_id);
+
+    console.log('Invite created: ' + code + ' for ' + email + ' (' + role + ')');
 
     res.status(201).json({
       success: true,
-      user,
-      temp_password: password,
-      message: 'User created. Share the temporary password with them to log in.'
+      invite: { id: inviteId, email: email.toLowerCase().trim(), full_name: full_name.trim(), role, invite_code: code, expires_at: expiresAt },
+      message: 'Invite code generated. Share this code with ' + full_name.trim() + ': ' + code,
+      org_name: org_details ? org_details.name : ''
     });
   } catch (err) {
-    console.error('Invite user error:', err);
-    res.status(500).json({ success: false, error: 'Failed to invite user' });
+    console.error('Invite error:', err);
+    res.status(500).json({ success: false, error: 'Failed to generate invite' });
+  }
+});
+
+// ============================================
+// DELETE /api/org/invites/:id
+// Cancel a pending invite
+// ============================================
+router.delete('/invites/:id', requireAdmin, (req, res) => {
+  try {
+    const { org_id } = req.user;
+    const invite = db.prepare('SELECT * FROM invites WHERE id = ? AND org_id = ?').get(req.params.id, org_id);
+    if (!invite) return res.status(404).json({ success: false, error: 'Invite not found' });
+    db.prepare('DELETE FROM invites WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Delete invite error:', err);
+    res.status(500).json({ success: false, error: 'Failed to cancel invite' });
   }
 });
 
 // ============================================
 // PUT /api/org/users/:id
+// Update user role or status
 // ============================================
 router.put('/users/:id', requireAdmin, (req, res) => {
   try {
@@ -120,8 +155,8 @@ router.put('/users/:id', requireAdmin, (req, res) => {
     }
 
     updates.updated_at = new Date().toISOString();
-    const setClause = Object.keys(updates).map(k => `${k} = ?`).join(', ');
-    db.prepare(`UPDATE users SET ${setClause} WHERE id = ?`).run(...Object.values(updates), req.params.id);
+    const setClause = Object.keys(updates).map(k => k + ' = ?').join(', ');
+    db.prepare('UPDATE users SET ' + setClause + ' WHERE id = ?').run(...Object.values(updates), req.params.id);
 
     const updated = db.prepare('SELECT id, email, full_name, role, is_active FROM users WHERE id = ?').get(req.params.id);
     res.json({ success: true, user: updated });
@@ -132,75 +167,71 @@ router.put('/users/:id', requireAdmin, (req, res) => {
 });
 
 // ============================================
+// DELETE /api/org/users/:id
+// Permanently delete a user from the org
+// ============================================
+router.delete('/users/:id', requireAdmin, (req, res) => {
+  try {
+    const { org_id, id: adminId } = req.user;
+    const user = db.prepare('SELECT * FROM users WHERE id = ? AND org_id = ?').get(req.params.id, org_id);
+    if (!user) return res.status(404).json({ success: false, error: 'User not found' });
+    if (user.id === adminId) return res.status(400).json({ success: false, error: 'Cannot delete your own account' });
+
+    // Clean up related data
+    db.prepare('DELETE FROM lesson_completions WHERE user_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM enrolments WHERE user_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM refresh_tokens WHERE user_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM cbir_sessions WHERE user_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM ai_sessions WHERE user_id = ?').run(req.params.id);
+    db.prepare('DELETE FROM users WHERE id = ?').run(req.params.id);
+
+    console.log('User deleted: ' + user.email + ' from org ' + org_id);
+    res.json({ success: true, message: 'User account deleted' });
+  } catch (err) {
+    console.error('Delete user error:', err);
+    res.status(500).json({ success: false, error: 'Failed to delete user' });
+  }
+});
+
+// ============================================
 // GET /api/org/dashboard
-// Rich stats for the admin dashboard
 // ============================================
 router.get('/dashboard', requireAdmin, (req, res) => {
   try {
     const { org_id } = req.user;
 
-    const userStats = db.prepare(`
-      SELECT 
-        COUNT(*) as total_users,
-        SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users,
-        SUM(CASE WHEN last_login_at > datetime('now', '-7 days') THEN 1 ELSE 0 END) as active_last_7_days
-      FROM users WHERE org_id = ?
-    `).get(org_id);
+    const userStats = db.prepare(
+      'SELECT COUNT(*) as total_users, SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_users FROM users WHERE org_id = ?'
+    ).get(org_id);
 
-    const enrolmentStats = db.prepare(`
-      SELECT 
-        COUNT(*) as total_enrolments,
-        SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-        SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress,
-        ROUND(AVG(progress_pct), 0) as avg_progress
-      FROM enrolments WHERE org_id = ?
-    `).get(org_id);
+    const enrolmentStats = db.prepare(
+      'SELECT COUNT(*) as total_enrolments, SUM(CASE WHEN status = "completed" THEN 1 ELSE 0 END) as completed, SUM(CASE WHEN status = "in_progress" THEN 1 ELSE 0 END) as in_progress FROM enrolments WHERE org_id = ?'
+    ).get(org_id);
 
-    const certStats = db.prepare(`
-      SELECT COUNT(*) as total_certs,
-        SUM(CASE WHEN expires_at > datetime('now') OR expires_at IS NULL THEN 1 ELSE 0 END) as active_certs,
-        SUM(CASE WHEN expires_at < datetime('now', '+30 days') AND expires_at > datetime('now') THEN 1 ELSE 0 END) as expiring_soon
-      FROM certificates WHERE org_id = ? AND is_revoked = 0
-    `).get(org_id);
+    const certStats = db.prepare(
+      'SELECT COUNT(*) as total_certs FROM certificates WHERE org_id = ? AND is_revoked = 0'
+    ).get(org_id);
 
-    const cbirStats = db.prepare(`
-      SELECT COUNT(*) as total_analyses, ROUND(AVG(overall_score), 1) as avg_score
-      FROM cbir_sessions WHERE org_id = ?
-    `).get(org_id);
+    const courseStats = db.prepare(
+      'SELECT COUNT(*) as org_courses FROM courses WHERE org_id = ? AND is_published = 1'
+    ).get(org_id);
 
-    const courseStats = db.prepare(`
-      SELECT COUNT(*) as org_courses FROM courses WHERE org_id = ? AND is_published = 1
-    `).get(org_id);
+    const pendingInvites = db.prepare(
+      'SELECT COUNT(*) as count FROM invites WHERE org_id = ? AND used_at IS NULL AND expires_at > ?'
+    ).get(org_id, new Date().toISOString());
 
-    const topCourses = db.prepare(`
-      SELECT c.title, COUNT(e.id) as enrolments,
-        SUM(CASE WHEN e.status = 'completed' THEN 1 ELSE 0 END) as completions,
-        ROUND(AVG(e.progress_pct), 0) as avg_progress
-      FROM enrolments e
-      JOIN courses c ON c.id = e.course_id
-      WHERE e.org_id = ?
-      GROUP BY c.id ORDER BY enrolments DESC LIMIT 5
-    `).all(org_id);
-
-    const recentActivity = db.prepare(`
-      SELECT u.full_name, c.title as course_title, e.status, e.progress_pct, e.updated_at
-      FROM enrolments e
-      JOIN users u ON u.id = e.user_id
-      JOIN courses c ON c.id = e.course_id
-      WHERE e.org_id = ?
-      ORDER BY e.updated_at DESC LIMIT 10
-    `).all(org_id);
+    const recentUsers = db.prepare(
+      'SELECT id, full_name, email, role, created_at FROM users WHERE org_id = ? ORDER BY created_at DESC LIMIT 5'
+    ).all(org_id);
 
     res.json({
       success: true,
       dashboard: {
-        users: userStats,
+        users: { ...userStats, pending_invites: pendingInvites ? pendingInvites.count : 0 },
         enrolments: enrolmentStats,
         certificates: certStats,
-        cbir: cbirStats,
         courses: courseStats,
-        top_courses: topCourses,
-        recent_activity: recentActivity
+        recent_users: recentUsers
       }
     });
   } catch (err) {
