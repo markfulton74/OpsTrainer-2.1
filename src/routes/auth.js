@@ -1,11 +1,5 @@
 // ============================================
 // OpsTrainer 2.1 — Auth Routes
-// POST /api/auth/register-org
-// POST /api/auth/register-individual
-// POST /api/auth/login
-// POST /api/auth/refresh
-// POST /api/auth/logout
-// GET  /api/auth/me
 // ============================================
 const express = require('express');
 const bcrypt = require('bcryptjs');
@@ -17,13 +11,13 @@ const { requireAuth, generateTokens } = require('../middleware/auth');
 
 const router = express.Router();
 
-// ---- Helpers ----
 function slugify(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 // ============================================
 // POST /api/auth/register-org
+// Creates a new organisation + first admin user
 // ============================================
 router.post('/register-org', async (req, res) => {
   try {
@@ -80,6 +74,7 @@ router.post('/register-org', async (req, res) => {
 
 // ============================================
 // POST /api/auth/register-individual
+// Creates a personal account (own auto-org)
 // ============================================
 router.post('/register-individual', async (req, res) => {
   try {
@@ -126,6 +121,77 @@ router.post('/register-individual', async (req, res) => {
   } catch (err) {
     console.error('Register-individual error:', err);
     res.status(500).json({ success: false, error: 'Registration failed' });
+  }
+});
+
+// ============================================
+// POST /api/auth/activate-invite
+// Org user first login: email + invite code + new password
+// ============================================
+router.post('/activate-invite', async (req, res) => {
+  try {
+    const { email, invite_code, password } = req.body;
+
+    if (!email || !invite_code || !password) {
+      return res.status(400).json({ success: false, error: 'email, invite_code and password are required' });
+    }
+    if (password.length < 8) {
+      return res.status(400).json({ success: false, error: 'Password must be at least 8 characters' });
+    }
+
+    const invite = db.prepare(
+      'SELECT * FROM invites WHERE invite_code = ? AND email = ?'
+    ).get(invite_code.trim().toUpperCase(), email.toLowerCase().trim());
+
+    if (!invite) {
+      return res.status(400).json({ success: false, error: 'Invalid invite code or email address' });
+    }
+
+    if (invite.used_at) {
+      return res.status(400).json({ success: false, error: 'This invite code has already been used' });
+    }
+
+    if (new Date(invite.expires_at) < new Date()) {
+      return res.status(400).json({ success: false, error: 'This invite code has expired. Ask your organisation admin for a new one.' });
+    }
+
+    // Check user doesn't already exist in this org
+    const existing = db.prepare('SELECT id FROM users WHERE org_id = ? AND email = ?')
+      .get(invite.org_id, email.toLowerCase().trim());
+    if (existing) {
+      return res.status(400).json({ success: false, error: 'An account with this email already exists in this organisation' });
+    }
+
+    // Create the user
+    const userId = uuidv4();
+    const passwordHash = await bcrypt.hash(password, 12);
+    db.prepare(
+      'INSERT INTO users (id, org_id, email, password_hash, full_name, role, email_verified, is_active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)'
+    ).run(userId, invite.org_id, email.toLowerCase().trim(), passwordHash, invite.full_name, invite.role, 1, 1);
+
+    // Mark invite as used
+    db.prepare('UPDATE invites SET used_at = ? WHERE id = ?').run(new Date().toISOString(), invite.id);
+
+    const { accessToken, refreshToken } = generateTokens(userId, invite.org_id, invite.role);
+    const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
+    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    db.prepare('INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)')
+      .run(uuidv4(), userId, tokenHash, expiresAt);
+
+    const org = db.prepare('SELECT name, slug, subscription_tier from organisations WHERE id = ?').get(invite.org_id);
+
+    console.log('Invite activated: ' + email + ' joined org ' + invite.org_id);
+
+    res.status(201).json({
+      success: true,
+      accessToken,
+      refreshToken,
+      user: { id: userId, email: email.toLowerCase().trim(), full_name: invite.full_name, role: invite.role },
+      org: { id: invite.org_id, name: org ? org.name : '', slug: org ? org.slug : '', subscription_tier: org ? org.subscription_tier : '' }
+    });
+  } catch (err) {
+    console.error('Activate invite error:', err);
+    res.status(500).json({ success: false, error: 'Account activation failed' });
   }
 });
 
@@ -216,8 +282,8 @@ router.post('/refresh', (req, res) => {
 
     const tokenHash = crypto.createHash('sha256').update(refreshToken).digest('hex');
     const stored = db.prepare(
-      'SELECT id FROM refresh_tokens WHERE token_hash = ? AND expires_at > CURRENT_TIMESTAMP'
-    ).get(tokenHash);
+      'SELECT id FROM refresh_tokens WHERE token_hash = ? AND expires_at > ?'
+    ).get(tokenHash, new Date().toISOString());
 
     if (!stored) {
       return res.status(401).json({ success: false, error: 'Refresh token not found or expired' });
@@ -227,9 +293,9 @@ router.post('/refresh', (req, res) => {
 
     const { accessToken, refreshToken: newRefresh } = generateTokens(decoded.userId, decoded.orgId, decoded.role);
     const newHash = crypto.createHash('sha256').update(newRefresh).digest('hex');
-    const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
     db.prepare('INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at) VALUES (?, ?, ?, ?)')
-      .run(uuidv4(), decoded.userId, newHash, expiresAt);
+      .run(uuidv4(), decoded.userId, newHash, newExpiry);
 
     res.json({ success: true, accessToken, refreshToken: newRefresh });
   } catch (err) {
