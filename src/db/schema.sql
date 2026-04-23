@@ -334,3 +334,118 @@ CREATE TABLE IF NOT EXISTS invites (
 
 CREATE INDEX IF NOT EXISTS idx_invites_code ON invites(invite_code);
 CREATE INDEX IF NOT EXISTS idx_invites_org ON invites(org_id);
+
+-- ============================================
+-- PASSWORD RESET TOKENS
+-- ============================================
+CREATE TABLE IF NOT EXISTS password_reset_tokens (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  token_hash TEXT NOT NULL UNIQUE,
+  expires_at DATETIME NOT NULL,
+  used_at DATETIME,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_reset_tokens_hash ON password_reset_tokens(token_hash);
+
+-- ============================================
+-- USER SETTINGS
+-- ============================================
+CREATE TABLE IF NOT EXISTS user_settings (
+  user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  language TEXT DEFAULT 'en',
+  tts_enabled INTEGER DEFAULT 1,
+  tts_voice TEXT DEFAULT 'default',
+  notifications_email INTEGER DEFAULT 1,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- ORG SETTINGS (for certificate customisation)
+-- ============================================
+CREATE TABLE IF NOT EXISTS org_settings (
+  org_id TEXT PRIMARY KEY REFERENCES organisations(id) ON DELETE CASCADE,
+  chief_trainer_name TEXT DEFAULT 'Chief Trainer',
+  chief_trainer_title TEXT DEFAULT 'Chief Trainer',
+  certificate_accent_color TEXT DEFAULT '#1a56db',
+  logo_url TEXT,
+  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+-- ============================================
+-- CBIR PROFILES
+-- ============================================
+CREATE TABLE IF NOT EXISTS cbir_profiles (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id TEXT NOT NULL REFERENCES organisations(id),
+  -- 6 Operational DNA dimensions (0-100)
+  adaptability INTEGER DEFAULT 0,
+  mission_focus INTEGER DEFAULT 0,
+  command_intelligence INTEGER DEFAULT 0,
+  partner_management INTEGER DEFAULT 0,
+  resource_judgement INTEGER DEFAULT 0,
+  safety_threshold INTEGER DEFAULT 0,
+  -- Archetype
+  archetype TEXT,
+  archetype_description TEXT,
+  -- Metadata
+  scenarios_completed INTEGER DEFAULT 0,
+  last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_cbir_profiles_org ON cbir_profiles(org_id);
+CREATE INDEX IF NOT EXISTS idx_cbir_profiles_user ON cbir_profiles(user_id);
+
+-- ============================================
+-- CBIR SCENARIO RESPONSES
+-- ============================================
+CREATE TABLE IF NOT EXISTS cbir_responses (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  org_id TEXT NOT NULL REFERENCES organisations(id),
+  course_id TEXT REFERENCES courses(id),
+  scenario_id TEXT NOT NULL,
+  scenario_title TEXT,
+  -- Raw response data
+  response_text TEXT,
+  response_time_seconds INTEGER,
+  -- Dimension scores for this response (0-100)
+  adaptability_score INTEGER,
+  mission_focus_score INTEGER,
+  command_intelligence_score INTEGER,
+  partner_management_score INTEGER,
+  resource_judgement_score INTEGER,
+  safety_threshold_score INTEGER,
+  -- AI analysis
+  ai_analysis TEXT,
+  ai_detected INTEGER DEFAULT 0,
+  ai_detection_confidence INTEGER DEFAULT 0,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_cbir_responses_user ON cbir_responses(user_id);
+CREATE INDEX IF NOT EXISTS idx_cbir_responses_course ON cbir_responses(course_id);
+
+-- ============================================
+-- FINAL EXAMS
+-- ============================================
+CREATE TABLE IF NOT EXISTS exam_attempts (
+  id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(16)))),
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id TEXT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  org_id TEXT NOT NULL REFERENCES organisations(id),
+  score INTEGER DEFAULT 0,
+  passed INTEGER DEFAULT 0,
+  attempt_number INTEGER DEFAULT 1,
+  answers TEXT, -- JSON
+  ai_detected INTEGER DEFAULT 0,
+  started_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+  completed_at DATETIME
+);
+
+CREATE INDEX IF NOT EXISTS idx_exam_attempts_user ON exam_attempts(user_id);
+CREATE INDEX IF NOT EXISTS idx_exam_attempts_course ON exam_attempts(course_id);
