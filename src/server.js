@@ -1,5 +1,5 @@
 // ============================================
-// OpsTrainer 2.1 — Main Server (v2.1.1)
+// OpsTrainer 2.1 — Main Server (v2.1.2)
 // ============================================
 require('dotenv').config();
 const express = require('express');
@@ -15,52 +15,62 @@ const PORT = process.env.PORT || 3000;
 // ============================================
 // Security Middleware
 // ============================================
-app.use(helmet({
-  contentSecurityPolicy: false // Disable for SPA flexibility
-}));
+app.use(helmet({ contentSecurityPolicy: false }));
 
 app.use(cors({
   origin: process.env.ALLOWED_ORIGINS
     ? process.env.ALLOWED_ORIGINS.split(',')
-    : ['http://localhost:3000', 'http://localhost:5173'],
+    : ['http://localhost:3000', 'http://localhost:5173', 'https://opstrainer.onrender.com'],
   credentials: true
 }));
 
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Rate limiting
+// ============================================
+// Rate Limiting
+// ============================================
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 min
+  windowMs: 15 * 60 * 1000,
   max: 200,
   message: { success: false, error: 'Too many requests. Please try again later.' }
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // Strict for auth endpoints
-  message: { success: false, error: 'Too many login attempts. Please wait 15 minutes.' }
+  max: 20,
+  message: { success: false, error: 'Too many attempts. Please wait 15 minutes.' }
+});
+
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5,
+  message: { success: false, error: 'Too many password reset requests. Please wait an hour.' }
 });
 
 app.use('/api/', apiLimiter);
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register-org', authLimiter);
 app.use('/api/auth/register-individual', authLimiter);
+app.use('/api/auth/activate-invite', authLimiter);
+app.use('/api/auth/forgot-password', forgotLimiter);
 
-// Request logging
+// ============================================
+// Request Logging
+// ============================================
 app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const ms = Date.now() - start;
-    if (ms > 1000) { // Only log slow requests
-      console.log(`[${res.statusCode}] ${req.method} ${req.originalUrl} (${ms}ms)`);
+    if (ms > 1000) {
+      console.log('[' + res.statusCode + '] ' + req.method + ' ' + req.originalUrl + ' (' + ms + 'ms)');
     }
   });
   next();
 });
 
 // ============================================
-// Database init + auto-seed on startup
+// Database Init + Auto-seed
 // ============================================
 try {
   const dataDir = path.join(__dirname, '..', 'data');
@@ -68,34 +78,25 @@ try {
 
   const db = require('./db');
 
-  // For SQLite: run schema
-  if (process.env.USE_SQLITE === 'true') {
-    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      const schema = fs.readFileSync(schemaPath, 'utf8');
-      db.exec(schema);
-      console.log('✅ SQLite schema applied');
-    }
-  } else {
-    // JSON DB: ensure all tables exist via exec (reads CREATE TABLE names)
-    const schemaPath = path.join(__dirname, 'db', 'schema.sql');
-    if (fs.existsSync(schemaPath)) {
-      const schema = fs.readFileSync(schemaPath, 'utf8');
-      db.exec(schema);
-    }
+  // Apply schema
+  const schemaPath = path.join(__dirname, 'db', 'schema.sql');
+  if (fs.existsSync(schemaPath)) {
+    const schema = fs.readFileSync(schemaPath, 'utf8');
+    db.exec(schema);
+    console.log('Schema applied');
   }
 
-  // Auto-seed if no orgs exist
+  // Auto-seed if fresh
   const orgCount = db.prepare('SELECT COUNT(*) as count FROM organisations').get();
   if (!orgCount || orgCount.count === 0) {
-    console.log('🌱 Fresh database — auto-seeding...');
+    console.log('Fresh database — auto-seeding...');
     require('./db/seed')();
-    console.log('✅ Seeded successfully');
+    console.log('Seeded successfully');
   } else {
-    console.log(`✅ Database ready (${orgCount.count} org(s))`);
+    console.log('Database ready (' + orgCount.count + ' org(s))');
   }
 } catch (err) {
-  console.error('❌ Database init failed:', err.message);
+  console.error('Database init failed:', err.message);
   process.exit(1);
 }
 
@@ -109,17 +110,20 @@ app.use('/api/ai', require('./routes/ai-instructor'));
 app.use('/api/certificates', require('./routes/certificates'));
 app.use('/api/org', require('./routes/org'));
 
-// Health check
+// ============================================
+// Health Check
+// ============================================
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
-    version: '2.1.0',
-    timestamp: new Date().toISOString()
+    version: '2.1.2',
+    timestamp: new Date().toISOString(),
+    db: process.env.USE_SQLITE === 'true' ? 'sqlite' : 'json'
   });
 });
 
 // ============================================
-// Static Assets (logo, cert templates, etc.)
+// Static Assets
 // ============================================
 const assetsDir = path.join(__dirname, '..', 'assets');
 if (fs.existsSync(assetsDir)) {
@@ -127,12 +131,18 @@ if (fs.existsSync(assetsDir)) {
 }
 
 // ============================================
-// Static Frontend
+// Static Frontend + SPA Routing
 // ============================================
 const publicDir = path.join(__dirname, '..', 'frontend');
-
 if (fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
+
+  // Password reset page — serve index.html with token in URL
+  app.get('/reset-password', (req, res) => {
+    res.sendFile(path.join(publicDir, 'index.html'));
+  });
+
+  // Catch-all SPA route
   app.get(/^(?!\/api).*/, (req, res) => {
     res.sendFile(path.join(publicDir, 'index.html'));
   });
@@ -145,15 +155,13 @@ app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
   res.status(500).json({
     success: false,
-    error: process.env.NODE_ENV === 'production'
-      ? 'Internal server error'
-      : err.message
+    error: process.env.NODE_ENV === 'production' ? 'Internal server error' : err.message
   });
 });
 
 // 404 for unknown API routes
 app.use('/api/*', (req, res) => {
-  res.status(404).json({ success: false, error: `Route not found: ${req.originalUrl}` });
+  res.status(404).json({ success: false, error: 'Route not found: ' + req.originalUrl });
 });
 
 // ============================================
@@ -172,10 +180,9 @@ process.on('uncaughtException', (err) => {
 // Start
 // ============================================
 app.listen(PORT, () => {
-  console.log(`\n🚀 OpsTrainer 2.1 running on port ${PORT}`);
-  console.log(`📊 Health: http://localhost:${PORT}/api/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}\n`);
+  console.log('OpsTrainer 2.1.2 running on port ' + PORT);
+  console.log('Health: http://localhost:' + PORT + '/api/health');
+  console.log('Environment: ' + (process.env.NODE_ENV || 'development'));
 });
 
 module.exports = app;
-
