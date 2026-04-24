@@ -1656,27 +1656,44 @@ function fmtDate(str){if(!str)return'-';return new Date(str).toLocaleDateString(
     return;
   }
 
-  // Auto login from stored refresh token
-  const rt=localStorage.getItem('refreshToken');
-  if(!rt) return;
-  const data=await api('POST','/auth/refresh',{refreshToken:rt});
-  if(data.success){
-    accessToken=data.accessToken;
-    if(data.refreshToken) localStorage.setItem('refreshToken',data.refreshToken);
-    const me=await api('GET','/auth/me');
-    if(me.success){
-      currentUser=me.user;
-      const orgData=await api('GET','/org/me');
-      currentOrg=orgData.success?orgData.org:null;
-      const settings=await api('GET','/auth/settings');
-      if(settings.success&&settings.settings){
-        ttsEnabled=settings.settings.tts_enabled!==0;
-        currentLang=settings.settings.language||'en';
-      }
-      bootApp();
+// ============================================
+// AUTO LOGIN + RESET PASSWORD HANDLER
+// ============================================
+(async function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var resetToken = params.get('token');
+    if (resetToken && window.location.pathname === '/reset-password') {
+      var valid = await api('GET', '/auth/validate-reset-token?token=' + resetToken);
+      document.getElementById('authMain').classList.add('hidden');
+      document.getElementById('forgotForm').classList.add('hidden');
+      document.getElementById('resetForm').classList.remove('hidden');
+      if (!valid.valid) showAlert('resetAlert', 'This reset link is invalid or has expired.', 'danger');
+      return;
     }
+    var rt = localStorage.getItem('refreshToken');
+    if (!rt) return;
+    var data = await api('POST', '/auth/refresh', { refreshToken: rt });
+    if (data.success) {
+      accessToken = data.accessToken;
+      if (data.refreshToken) localStorage.setItem('refreshToken', data.refreshToken);
+      var me = await api('GET', '/auth/me');
+      if (me.success) {
+        currentUser = me.user;
+        var orgData = await api('GET', '/org/me');
+        currentOrg = orgData.success ? orgData.org : null;
+        var settings = await api('GET', '/auth/settings');
+        if (settings.success && settings.settings) {
+          ttsEnabled = settings.settings.tts_enabled !== 0;
+          currentLang = settings.settings.language || 'en';
+        }
+        bootApp();
+      }
+    }
+  } catch(e) {
+    console.error('Auto-login error:', e);
   }
 })();
 </script>
 </body>
-</html> 
+</html>
